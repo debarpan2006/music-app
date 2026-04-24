@@ -177,93 +177,63 @@ app.get('/api/search-artists', async (req, res) => {
   }
 });
 
-app.get('/api/search', async (req, res) => {
+app.get('/api/search/unified', async (req, res) => {
   try {
-    const { query, limit } = req.query;
-    const maxLimit = limit ? Number(limit) : 500; // Uncapped/large limit for search
-    const results = await saavnSearch(query, maxLimit);
+    const { query } = req.query;
+    if (!query) return res.json({ data: { results: [] } });
+
+    const [saavnRes, ytRes, appleRes] = await Promise.allSettled([
+      saavnSearch(query, 12),
+      ytmusic.searchSongs(query).then(songs => songs.slice(0, 10).map(s => ({
+        id: "yt_" + s.videoId,
+        name: s.name,
+        ytVideoId: s.videoId,
+        source: "youtube",
+        duration: s.duration,
+        artists: { primary: [{ name: s.artist?.name || 'Unknown' }] },
+        image: [
+          { link: s.thumbnails?.[0]?.url || '' },
+          { link: s.thumbnails?.[1]?.url || s.thumbnails?.[0]?.url || '' },
+          { link: s.thumbnails?.[2]?.url || s.thumbnails?.[s.thumbnails.length-1]?.url || '' }
+        ]
+      }))),
+      (async () => {
+        if (!appleToken) try { await fetchAppleToken(); } catch (e) { return []; }
+        const url = `https://amp-api.music.apple.com/v1/catalog/in/search?term=${encodeURIComponent(query)}&types=songs&limit=8`;
+        const r = await axios.get(url, {
+          headers: { 'Authorization': `Bearer ${appleToken}`, 'Origin': 'https://music.apple.com' }
+        });
+        return (r.data.results.songs?.data || []).map(s => ({
+          id: "apple_" + s.id,
+          name: s.attributes.name,
+          source: "apple",
+          duration: Math.floor(s.attributes.durationInMillis / 1000),
+          artists: { primary: [{ name: s.attributes.artistName }] },
+          image: [
+            { link: s.attributes.artwork.url.replace('{w}', '100').replace('{h}', '100') },
+            { link: s.attributes.artwork.url.replace('{w}', '250').replace('{h}', '250') },
+            { link: s.attributes.artwork.url.replace('{w}', '500').replace('{h}', '500') }
+          ]
+        }));
+      })()
+    ]);
+
+    const results = [
+      ...(saavnRes.status === 'fulfilled' ? saavnRes.value : []),
+      ...(ytRes.status === 'fulfilled' ? ytRes.value : []),
+      ...(appleRes.status === 'fulfilled' ? appleRes.value : [])
+    ];
+
+    // Simple shuffle to blend sources
+    for (let i = results.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [results[i], results[j]] = [results[j], results[i]];
+    }
+
     res.json({ data: { results } });
   } catch (err) {
-    res.status(500).json({ error: 'Search failed' });
-  }
-});
-
-// YouTube Music Search Wrapper
-app.get('/api/yt/search', async (req, res) => {
-  try {
-    const { query } = req.query;
-    const songs = await ytmusic.searchSongs(query);
-    
-    // Map YouTube response cleanly onto JioSaavn schema
-    const mapped = songs.map(s => ({
-      id: "yt_" + s.videoId,
-      name: s.name,
-      ytVideoId: s.videoId,
-      source: "youtube",
-      duration: s.duration,
-      artists: { primary: [{ name: s.artist?.name || 'Unknown' }] },
-      image: [
-        { link: s.thumbnails?.[0]?.url || '' },
-        { link: s.thumbnails?.[1]?.url || s.thumbnails?.[0]?.url || '' },
-        { link: s.thumbnails?.[2]?.url || s.thumbnails?.[s.thumbnails.length-1]?.url || '' }
-      ]
-    }));
-
-    // Enrichment Step: If Official API Key is present, grab high-res data for the top result
-    if (YOUTUBE_API_KEY && mapped.length > 0) {
-      try {
-        const topVideoId = mapped[0].ytVideoId;
-        const enrichRes = await axios.get(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${topVideoId}&key=${YOUTUBE_API_KEY}`);
-        const info = enrichRes.data?.items?.[0];
-        if (info) {
-          mapped[0].viewCount = info.statistics.viewCount;
-          mapped[0].description = info.snippet.description;
-          // Upgrade thumbnail to MaxRes if available
-          if (info.snippet.thumbnails.maxres) {
-            mapped[0].image[2].link = info.snippet.thumbnails.maxres.url;
-          }
-        }
-      } catch (e) {
-        console.error("YT Enrichment fail:", e.message);
-      }
-    }
-    
-    res.json({ data: { results: mapped } });
-  } catch (err) {
-    res.status(500).json({ error: 'Youtube Search failed' });
-  }
-});
-
-app.get('/api/apple/search', async (req, res) => {
-  try {
-    const { query } = req.query;
-    if (!appleToken) await fetchAppleToken();
-    const url = `https://amp-api.music.apple.com/v1/catalog/in/search?term=${encodeURIComponent(query)}&types=songs&limit=25`;
-    const response = await axios.get(url, {
-      headers: {
-        'Authorization': `Bearer ${appleToken}`,
-        'Origin': 'https://music.apple.com'
-      }
-    });
-    const songs = response.data.results.songs.data || [];
-    const mapped = songs.map(s => ({
-      id: "apple_" + s.id,
-      name: s.attributes.name,
-      source: "apple",
-      duration: Math.floor(s.attributes.durationInMillis / 1000),
-      artists: { primary: [{ name: s.attributes.artistName }] },
-      image: [
-        { link: s.attributes.artwork.url.replace('{w}', '100').replace('{h}', '100') },
-        { link: s.attributes.artwork.url.replace('{w}', '250').replace('{h}', '250') },
-        { link: s.attributes.artwork.url.replace('{w}', '500').replace('{h}', '500') }
-      ]
-    }));
-    res.json({ data: { results: mapped } });
-  } catch (err) {
-    if (err.response?.status === 401) {
-      appleToken = null; // Reset for retry on next request
-    }
-    res.status(500).json({ error: 'Apple Search failed' });
+    console.error("Unified search fail:", err.message);
+    res.status(500).json({ error: 'Unified Search failed' });
   }
 });
 
