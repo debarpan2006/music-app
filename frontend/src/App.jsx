@@ -216,7 +216,7 @@ function MainApp({ user, logout }) {
   // Playback
   const [songs, setSongs] = useState([]);
   const [queue, setQueue] = useState([]); // Actual playback queue
-  const [searchSource, setSearchSource] = useState('smart');
+  const [searchSource, setSearchSource] = useState('saavn');
   const [currentSong, setCurrentSong] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -226,18 +226,9 @@ function MainApp({ user, logout }) {
   const [volume, setVolume] = useState(1);
   const [prevVolume, setPrevVolume] = useState(1);
   const audioRef = useRef(null);
-  const ytPlayerRef = useRef(null);
-  const [ytReady, setYtReady] = useState(false);
-
-  useEffect(() => {
-    window.onYouTubeIframeAPIReady = () => {
-      console.log("YT API Ready ✨");
-      setYtReady(true);
-    };
-  }, []);
 
   // Player extras
-  const [playerMode, setPlayerMode] = useState('song'); // 'song' or 'video'
+  const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState('off'); // 'off' | 'all' | 'one'
   const [liked, setLiked] = useState({});      // { songId: true/false }
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -729,56 +720,20 @@ function MainApp({ user, logout }) {
       } catch (e) { console.error("Offline read failed", e); }
     }
 
-    // 1. YouTube Native Support
-    if (song.source === 'youtube') {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      }
-      setIsBuffering(true);
-      const videoId = song.ytVideoId || song.id.replace('yt_', '');
-
-      if (ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
-        ytPlayerRef.current.loadVideoById(videoId);
-        ytPlayerRef.current.playVideo();
-      } else if (ytReady) {
-        ytPlayerRef.current = new window.YT.Player('yt-player', {
-          height: '100%',
-          width: '100%',
-          videoId: videoId,
-          playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0 },
-          events: {
-            onReady: (e) => { e.target.playVideo(); setIsBuffering(false); },
-            onStateChange: (e) => {
-              setIsPlaying(e.data === window.YT.PlayerState.PLAYING);
-              if (e.data === window.YT.PlayerState.ENDED) handleSongEnd();
-              if (e.data === window.YT.PlayerState.BUFFERING) setIsBuffering(true);
-              if (e.data === window.YT.PlayerState.PLAYING) setIsBuffering(false);
-            },
-            onError: () => setIsBuffering(false)
-          }
-        });
-      }
-      setIsPlaying(true);
-    } else {
-      // 2. Audio Sources (JioSaavn / Deezer / Offline)
-      if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) {
-        ytPlayerRef.current.pauseVideo();
-      }
-      if (audioRef.current) {
-          setIsBuffering(true);
-          if (existingUrl) {
-              audioRef.current.src = existingUrl;
-              audioRef.current.load();
-              audioRef.current.play()
-                  .then(() => setIsBuffering(false))
-                  .catch(() => {
-                      setIsBuffering(false);
-                      setIsPlaying(false);
-                  });
-              setIsPlaying(true);
-          }
-      }
+    // 1. CRITICAL FOR MOBILE: Prime the audio element synchronously within the click handler
+    if (audioRef.current) {
+        setIsBuffering(true);
+        if (existingUrl) {
+            audioRef.current.src = existingUrl;
+            audioRef.current.load();
+            audioRef.current.play()
+                .then(() => setIsBuffering(false))
+                .catch(() => {
+                    setIsBuffering(false);
+                    setIsPlaying(false);
+                });
+            setIsPlaying(true);
+        }
     }
 
     // 2. ASYNC: Cross-match for YouTube/Apple if URL is missing
@@ -843,23 +798,7 @@ function MainApp({ user, logout }) {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
-  }, [currentMood, playStartTime, prefetchNext, volume, songs, ytReady]);
-
-  // Sync YouTube progress
-  useEffect(() => {
-    if (currentSong?.source !== 'youtube' || !ytPlayerRef.current) return;
-    const interval = setInterval(() => {
-      if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
-        const cur = ytPlayerRef.current.getCurrentTime();
-        const dur = ytPlayerRef.current.getDuration();
-        if (dur > 0) {
-          setProgress((cur / dur) * 100);
-          setDuration(dur);
-        }
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [currentSong, isPlaying]);
+  }, [currentMood, playStartTime, prefetchNext, volume, songs]);
 
   // ── Navigate by index (prev / next) ────────────────────────────────
   const playByIndex = useCallback((idx) => {
@@ -893,13 +832,8 @@ function MainApp({ user, logout }) {
   // ── Auto-next on song end ────────────────────────────────────────────
   const handleSongEnd = useCallback(() => {
     if (repeat === 'one') {
-      if (currentSong?.source === 'youtube' && ytPlayerRef.current) {
-        ytPlayerRef.current.seekTo(0);
-        ytPlayerRef.current.playVideo();
-      } else {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
       return;
     }
     setIsPlaying(false);
@@ -958,9 +892,7 @@ function MainApp({ user, logout }) {
       setLoading(true);
       setListLabel(`Results for "${query}"`);
       setSelectedChip(null);
-      let endpoint = '/api/smart-search';
-      if (searchSource === 'saavn') endpoint = '/api/search';
-      if (searchSource === 'deezer') endpoint = '/api/deezer/search';
+      let endpoint = '/api/search';
       if (searchSource === 'youtube') endpoint = '/api/yt/search';
       if (searchSource === 'apple') endpoint = '/api/apple/search';
       try {
@@ -980,9 +912,7 @@ function MainApp({ user, logout }) {
     setLoading(true);
     setListLabel(`Results for "${query}"`);
     setSelectedChip(null);
-    let endpoint = '/api/smart-search';
-    if (searchSource === 'saavn') endpoint = '/api/search';
-    if (searchSource === 'deezer') endpoint = '/api/deezer/search';
+    let endpoint = '/api/search';
     if (searchSource === 'youtube') endpoint = '/api/yt/search';
     if (searchSource === 'apple') endpoint = '/api/apple/search';
     const res = await axios.get(`${endpoint}?query=${encodeURIComponent(query)}`);
@@ -995,7 +925,7 @@ function MainApp({ user, logout }) {
     setSelectedChip(chip.label);
     setLoading(true);
     setListLabel(chip.label);
-    const endpoint = searchSource === 'smart' ? '/api/smart-search' : (searchSource === 'deezer' ? '/api/deezer/search' : (searchSource === 'youtube' ? '/api/yt/search' : (searchSource === 'apple' ? '/api/apple/search' : '/api/search')));
+    const endpoint = searchSource === 'youtube' ? '/api/yt/search' : (searchSource === 'apple' ? '/api/apple/search' : '/api/search');
     try {
       const res = await axios.get(`${endpoint}?query=${encodeURIComponent(chip.query)}`);
       const results = res.data?.data?.results || [];
@@ -1009,12 +939,6 @@ function MainApp({ user, logout }) {
 
   // ── Playback helpers ─────────────────────────────────────────────────
   const togglePlay = () => {
-    if (currentSong?.source === 'youtube' && ytPlayerRef.current) {
-      if (isPlaying) ytPlayerRef.current.pauseVideo();
-      else ytPlayerRef.current.playVideo();
-      setIsPlaying(!isPlaying);
-      return;
-    }
     if (!audioRef.current) return;
     if (isPlaying) { audioRef.current.pause(); } else { audioRef.current.play(); }
     setIsPlaying(!isPlaying);
@@ -1040,15 +964,9 @@ function MainApp({ user, logout }) {
   };
 
   const handleSeek = (e) => {
-    const val = e.target.value;
-    if (currentSong?.source === 'youtube' && ytPlayerRef.current) {
-      const d = ytPlayerRef.current.getDuration();
-      ytPlayerRef.current.seekTo((val / 100) * d);
-    } else {
-      const t = (val / 100) * audioRef.current.duration;
-      audioRef.current.currentTime = t;
-    }
-    setProgress(val);
+    const t = (e.target.value / 100) * audioRef.current.duration;
+    audioRef.current.currentTime = t;
+    setProgress(e.target.value);
   };
 
   const handleVolumeChange = (e) => {
@@ -1175,52 +1093,7 @@ function MainApp({ user, logout }) {
     }
   }, [isPlaying, currentSong, duration, progress]);
 
-  // Sync Player Mode vs Source
-  useEffect(() => {
-    if (!currentSong) return;
-    
-    // If user switches to video and we are on an audio source,
-    // we need to trigger the cross-match to get a YT videoId
-    if (playerMode === 'video' && currentSong.source !== 'youtube' && !currentSong.saavnCrossId) {
-      const fetchYTMatch = async () => {
-        try {
-          const q = `${currentSong.name} ${currentSong.artists?.primary?.[0]?.name || ''} official video`;
-          const res = await axios.get(`/api/yt/search?query=${encodeURIComponent(q)}&limit=1`);
-          const match = res.data?.data?.results?.[0];
-          if (match) {
-            currentSong.saavnCrossId = match.ytVideoId || match.id.replace('yt_', '');
-            
-            // Sync playback to the new YT player
-            if (audioRef.current) audioRef.current.pause();
-            const time = audioRef.current?.currentTime || 0;
-            
-            if (ytPlayerRef.current?.loadVideoById) {
-              ytPlayerRef.current.loadVideoById(currentSong.saavnCrossId, time);
-              ytPlayerRef.current.playVideo();
-            } else if (ytReady) {
-                ytPlayerRef.current = new window.YT.Player('yt-player', {
-                  height: '100%', width: '100%',
-                  videoId: currentSong.saavnCrossId,
-                  playerVars: { autoplay: 1, start: Math.floor(time) },
-                  events: {
-                    onReady: (e) => e.target.playVideo(),
-                    onStateChange: (e) => {
-                       setIsPlaying(e.data === window.YT.PlayerState.PLAYING);
-                       if (e.data === window.YT.PlayerState.ENDED) handleSongEnd();
-                    }
-                  }
-                });
-            }
-          }
-        } catch (e) { console.error("Video cross-match failed", e); }
-      };
-      fetchYTMatch();
-    } else if (playerMode === 'song' && currentSong.source !== 'youtube') {
-      // Switching back to audio
-      if (ytPlayerRef.current?.pauseVideo) ytPlayerRef.current.pauseVideo();
-      if (audioRef.current) audioRef.current.play();
-    }
-  }, [playerMode, currentSong, ytReady]);
+  // ── Native Android MediaSession (Samsung Now Bar) ─────────────────────
   // Calls NativeMediaPlugin → MusicService → MediaSessionCompat + AudioFocus
   // AudioFocus is what Samsung One UI 8 reads to decide which app owns media.
   
@@ -1482,10 +1355,8 @@ function MainApp({ user, logout }) {
               onChange={e => setSearchSource(e.target.value)}
               style={{ padding: '0 12px', borderRadius: '24px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', outline: 'none', cursor: 'pointer', flexShrink: 0 }}
             >
-              <option value="smart">Smart Search (All)</option>
-              <option value="saavn">JioSaavn</option>
-              <option value="deezer">Deezer (Pakistani Songs)</option>
               <option value="youtube">YouTube Music</option>
+              <option value="saavn">JioSaavn</option>
               <option value="apple">Apple Music</option>
             </select>
             <form onSubmit={searchSongs} className="search-bar" style={{ flexGrow: 1, maxWidth: '100%' }}>
@@ -1619,57 +1490,16 @@ function MainApp({ user, logout }) {
                     </svg>
                   </button>
                   <div className="ytm-header-tabs">
-                    <button 
-                      className={`ytm-tab-item ${playerMode === 'song' ? 'active' : ''}`}
-                      onClick={() => setPlayerMode('song')}
-                    >
-                      Song
-                    </button>
-                    <button 
-                      className={`ytm-tab-item ${playerMode === 'video' ? 'active' : ''}`}
-                      onClick={() => setPlayerMode('video')}
-                    >
-                      Video
-                    </button>
+                    <span className="ytm-tab-item active">Song</span>
                   </div>
                   <div style={{ width: '44px' }} /> {/* Spacer for symmetry */}
                 </div>
 
-                {/* ── ARTWORK / VIDEO ── */}
+                {/* ── LARGE ARTWORK ── */}
                 <div className="ytm-art-container">
-                  {(currentSong.source === 'youtube' || currentSong.saavnCrossId) && playerMode === 'video' ? (
-                    <div className="yt-video-frame-wrapper">
-                      <style>{`
-                        #yt-player {
-                          position: static !important;
-                          width: 100% !important;
-                          aspect-ratio: 16 / 9 !important;
-                          height: auto !important;
-                          opacity: 1 !important;
-                          pointer-events: auto !important;
-                          border-radius: 12px;
-                          overflow: hidden;
-                          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-                        }
-                        .ytm-large-art.yt-hidden { display: none; }
-                      `}</style>
-                    </div>
-                  ) : (
-                    <style>{`
-                       #yt-player {
-                          position: fixed !important;
-                          bottom: 0 !important;
-                          right: 0 !important;
-                          width: 1px !important;
-                          height: 1px !important;
-                          opacity: 0 !important;
-                          pointer-events: none !important;
-                        }
-                    `}</style>
-                  )}
                   <img
                     src={currentSong.image?.[2]?.link || currentSong.image?.[1]?.link}
-                    className={`ytm-large-art ${isBuffering ? 'buffering-dim' : ''} ${((currentSong.source === 'youtube' || currentSong.saavnCrossId) && playerMode === 'video') ? 'yt-hidden' : ''}`}
+                    className={`ytm-large-art ${isBuffering ? 'buffering-dim' : ''}`}
                     alt=""
                   />
                   {isBuffering && (
@@ -1989,10 +1819,7 @@ function MainApp({ user, logout }) {
                         </div>
 
                         <div className="song-info">
-                          <p className="song-name">
-                            {decodeText(song.name)}
-                            {song._isDeezer && <span className="source-badge-pill" style={{ marginLeft: '8px', fontSize: '9px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>30s Preview</span>}
-                          </p>
+                          <p className="song-name">{decodeText(song.name)}</p>
                           <p className="song-artist">{artistName}</p>
                         </div>
 
