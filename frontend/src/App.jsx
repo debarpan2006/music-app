@@ -237,7 +237,7 @@ function MainApp({ user, logout }) {
   }, []);
 
   // Player extras
-  const [shuffle, setShuffle] = useState(false);
+  const [playerMode, setPlayerMode] = useState('song'); // 'song' or 'video'
   const [repeat, setRepeat] = useState('off'); // 'off' | 'all' | 'one'
   const [liked, setLiked] = useState({});      // { songId: true/false }
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -1175,7 +1175,52 @@ function MainApp({ user, logout }) {
     }
   }, [isPlaying, currentSong, duration, progress]);
 
-  // ── Native Android MediaSession (Samsung Now Bar) ─────────────────────
+  // Sync Player Mode vs Source
+  useEffect(() => {
+    if (!currentSong) return;
+    
+    // If user switches to video and we are on an audio source,
+    // we need to trigger the cross-match to get a YT videoId
+    if (playerMode === 'video' && currentSong.source !== 'youtube' && !currentSong.saavnCrossId) {
+      const fetchYTMatch = async () => {
+        try {
+          const q = `${currentSong.name} ${currentSong.artists?.primary?.[0]?.name || ''} official video`;
+          const res = await axios.get(`/api/yt/search?query=${encodeURIComponent(q)}&limit=1`);
+          const match = res.data?.data?.results?.[0];
+          if (match) {
+            currentSong.saavnCrossId = match.ytVideoId || match.id.replace('yt_', '');
+            
+            // Sync playback to the new YT player
+            if (audioRef.current) audioRef.current.pause();
+            const time = audioRef.current?.currentTime || 0;
+            
+            if (ytPlayerRef.current?.loadVideoById) {
+              ytPlayerRef.current.loadVideoById(currentSong.saavnCrossId, time);
+              ytPlayerRef.current.playVideo();
+            } else if (ytReady) {
+                ytPlayerRef.current = new window.YT.Player('yt-player', {
+                  height: '100%', width: '100%',
+                  videoId: currentSong.saavnCrossId,
+                  playerVars: { autoplay: 1, start: Math.floor(time) },
+                  events: {
+                    onReady: (e) => e.target.playVideo(),
+                    onStateChange: (e) => {
+                       setIsPlaying(e.data === window.YT.PlayerState.PLAYING);
+                       if (e.data === window.YT.PlayerState.ENDED) handleSongEnd();
+                    }
+                  }
+                });
+            }
+          }
+        } catch (e) { console.error("Video cross-match failed", e); }
+      };
+      fetchYTMatch();
+    } else if (playerMode === 'song' && currentSong.source !== 'youtube') {
+      // Switching back to audio
+      if (ytPlayerRef.current?.pauseVideo) ytPlayerRef.current.pauseVideo();
+      if (audioRef.current) audioRef.current.play();
+    }
+  }, [playerMode, currentSong, ytReady]);
   // Calls NativeMediaPlugin → MusicService → MediaSessionCompat + AudioFocus
   // AudioFocus is what Samsung One UI 8 reads to decide which app owns media.
   
@@ -1574,16 +1619,26 @@ function MainApp({ user, logout }) {
                     </svg>
                   </button>
                   <div className="ytm-header-tabs">
-                    <span className="ytm-tab-item active">Song</span>
+                    <button 
+                      className={`ytm-tab-item ${playerMode === 'song' ? 'active' : ''}`}
+                      onClick={() => setPlayerMode('song')}
+                    >
+                      Song
+                    </button>
+                    <button 
+                      className={`ytm-tab-item ${playerMode === 'video' ? 'active' : ''}`}
+                      onClick={() => setPlayerMode('video')}
+                    >
+                      Video
+                    </button>
                   </div>
                   <div style={{ width: '44px' }} /> {/* Spacer for symmetry */}
                 </div>
 
                 {/* ── ARTWORK / VIDEO ── */}
                 <div className="ytm-art-container">
-                  {currentSong.source === 'youtube' ? (
+                  {(currentSong.source === 'youtube' || currentSong.saavnCrossId) && playerMode === 'video' ? (
                     <div className="yt-video-frame-wrapper">
-                      {/* We use CSS to move the #yt-player here when needed */}
                       <style>{`
                         #yt-player {
                           position: static !important;
@@ -1614,7 +1669,7 @@ function MainApp({ user, logout }) {
                   )}
                   <img
                     src={currentSong.image?.[2]?.link || currentSong.image?.[1]?.link}
-                    className={`ytm-large-art ${isBuffering ? 'buffering-dim' : ''} ${currentSong.source === 'youtube' ? 'yt-hidden' : ''}`}
+                    className={`ytm-large-art ${isBuffering ? 'buffering-dim' : ''} ${((currentSong.source === 'youtube' || currentSong.saavnCrossId) && playerMode === 'video') ? 'yt-hidden' : ''}`}
                     alt=""
                   />
                   {isBuffering && (

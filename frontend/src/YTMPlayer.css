@@ -77,6 +77,9 @@
   font-weight: 600;
   cursor: pointer;
   color: rgba(255,255,255,0.6);
+  background: none;
+  border: none;
+  transition: all 0.2s;
 }
 
 .ytm-tab-item.active {
