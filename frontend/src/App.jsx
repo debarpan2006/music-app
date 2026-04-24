@@ -216,7 +216,7 @@ function MainApp({ user, logout }) {
   // Playback
   const [songs, setSongs] = useState([]);
   const [queue, setQueue] = useState([]); // Actual playback queue
-  const [searchSource, setSearchSource] = useState('saavn');
+  const [searchSource, setSearchSource] = useState('smart');
   const [currentSong, setCurrentSong] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -892,7 +892,9 @@ function MainApp({ user, logout }) {
       setLoading(true);
       setListLabel(`Results for "${query}"`);
       setSelectedChip(null);
-      let endpoint = '/api/search';
+      let endpoint = '/api/smart-search';
+      if (searchSource === 'saavn') endpoint = '/api/search';
+      if (searchSource === 'deezer') endpoint = '/api/deezer/search';
       if (searchSource === 'youtube') endpoint = '/api/yt/search';
       if (searchSource === 'apple') endpoint = '/api/apple/search';
       try {
@@ -912,7 +914,9 @@ function MainApp({ user, logout }) {
     setLoading(true);
     setListLabel(`Results for "${query}"`);
     setSelectedChip(null);
-    let endpoint = '/api/search';
+    let endpoint = '/api/smart-search';
+    if (searchSource === 'saavn') endpoint = '/api/search';
+    if (searchSource === 'deezer') endpoint = '/api/deezer/search';
     if (searchSource === 'youtube') endpoint = '/api/yt/search';
     if (searchSource === 'apple') endpoint = '/api/apple/search';
     const res = await axios.get(`${endpoint}?query=${encodeURIComponent(query)}`);
@@ -925,7 +929,7 @@ function MainApp({ user, logout }) {
     setSelectedChip(chip.label);
     setLoading(true);
     setListLabel(chip.label);
-    const endpoint = searchSource === 'youtube' ? '/api/yt/search' : (searchSource === 'apple' ? '/api/apple/search' : '/api/search');
+    const endpoint = searchSource === 'smart' ? '/api/smart-search' : (searchSource === 'deezer' ? '/api/deezer/search' : (searchSource === 'youtube' ? '/api/yt/search' : (searchSource === 'apple' ? '/api/apple/search' : '/api/search')));
     try {
       const res = await axios.get(`${endpoint}?query=${encodeURIComponent(chip.query)}`);
       const results = res.data?.data?.results || [];
@@ -1355,8 +1359,10 @@ function MainApp({ user, logout }) {
               onChange={e => setSearchSource(e.target.value)}
               style={{ padding: '0 12px', borderRadius: '24px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', outline: 'none', cursor: 'pointer', flexShrink: 0 }}
             >
-              <option value="youtube">YouTube Music</option>
+              <option value="smart">Smart Search (All)</option>
               <option value="saavn">JioSaavn</option>
+              <option value="deezer">Deezer (Pakistani Songs)</option>
+              <option value="youtube">YouTube Music</option>
               <option value="apple">Apple Music</option>
             </select>
             <form onSubmit={searchSongs} className="search-bar" style={{ flexGrow: 1, maxWidth: '100%' }}>
@@ -1819,7 +1825,10 @@ function MainApp({ user, logout }) {
                         </div>
 
                         <div className="song-info">
-                          <p className="song-name">{decodeText(song.name)}</p>
+                          <p className="song-name">
+                            {decodeText(song.name)}
+                            {song._isDeezer && <span className="source-badge-pill" style={{ marginLeft: '8px', fontSize: '9px', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px' }}>30s Preview</span>}
+                          </p>
                           <p className="song-artist">{artistName}</p>
                         </div>
 

@@ -188,6 +188,72 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// Deezer Search (Helps find Pakistani Songs like Coke Studio)
+app.get('/api/deezer/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    const response = await axios.get(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=20`);
+    const results = (response.data?.data || []).map(s => ({
+      id: "dz_" + s.id,
+      name: s.title,
+      artist: s.artist?.name,
+      image: [
+        { link: s.album?.cover_small || '' },
+        { link: s.album?.cover_medium || '' },
+        { link: s.album?.cover_big || '' }
+      ],
+      downloadUrl: [{ link: s.preview, quality: '30s_preview' }],
+      duration: s.duration,
+      source: "deezer",
+      artists: { primary: [{ name: s.artist?.name }] }
+    }));
+    res.json({ data: { results } });
+  } catch (err) {
+    res.status(500).json({ error: 'Deezer search failed' });
+  }
+});
+
+// Smart Combined Search (JioSaavn + Deezer + YouTube)
+app.get('/api/smart-search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) return res.json({ songs: [] });
+
+    // Run searches in parallel
+    const [saavnRes, deezerRes] = await Promise.allSettled([
+      saavnSearch(query, 12),
+      axios.get(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=10`)
+    ]);
+
+    const saavnSongs = saavnRes.status === 'fulfilled' ? saavnRes.value : [];
+    const deezerSongs = deezerRes.status === 'fulfilled'
+      ? (deezerRes.value.data?.data || []).map(s => ({
+        id: `dz_${s.id}`,
+        name: s.title,
+        source: 'deezer',
+        duration: s.duration,
+        artists: { primary: [{ name: s.artist?.name }] },
+        image: [{ link: s.album?.cover_medium }],
+        downloadUrl: [{ link: s.preview, quality: '320kbps' }], // We map preview to downloadUrl for playback
+        _isDeezer: true
+      }))
+      : [];
+
+    // Prioritize JioSaavn, but interleave Deezer if Saavn results are low or for diversity
+    const merged = [...saavnSongs];
+    deezerSongs.forEach(ds => {
+      // Avoid exact name matches if possible
+      if (!merged.find(ms => ms.name.toLowerCase() === ds.name.toLowerCase())) {
+        merged.push(ds);
+      }
+    });
+
+    res.json({ data: { results: merged } });
+  } catch (err) {
+    res.status(500).json({ error: 'Smart search failed' });
+  }
+});
+
 // YouTube Music Search Wrapper
 app.get('/api/yt/search', async (req, res) => {
   try {
