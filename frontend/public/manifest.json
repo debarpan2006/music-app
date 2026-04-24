@@ -1,7 +1,7 @@
 {
-  "short_name": "DJ Debarpan",
-  "name": "Play with Debarpan",
-  "description": "Ultimate Music Experience by DJ Debarpan",
+  "short_name": "Dil Se Suno",
+  "name": "Dil Se Suno",
+  "description": "Personalized music experience with AI-powered discovery and offline downloads.",
   "icons": [
     {
       "src": "app-icon.png",

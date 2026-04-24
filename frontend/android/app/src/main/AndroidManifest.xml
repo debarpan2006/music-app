@@ -7,17 +7,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
         <!-- ── Native Music Foreground Service ── -->
-        <service
-            android:name=".MusicService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+        <service android:name=".MusicService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
 
         <!-- ── Media Button Receiver (for lock screen / Bluetooth controls) ── -->
-        <receiver
-            android:name="androidx.media.session.MediaButtonReceiver"
-            android:exported="true">
+        <receiver android:name="androidx.media.session.MediaButtonReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
