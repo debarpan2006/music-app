@@ -2515,14 +2515,14 @@ const ONBOARDING_GENRES = ['Bollywood', 'Punjabi', 'Lofi', 'Pop', 'Retro', 'Devo
 const ONBOARDING_ARTISTS_DEFAULT = [
   { name: 'Arijit Singh', img: 'https://c.saavncdn.com/artists/Arijit_Singh_004_20241118063717_150x150.jpg' },
   { name: 'Badshah', img: 'https://c.saavncdn.com/artists/Badshah_005_20230608084021_150x150.jpg' },
-  { name: 'Shreya Ghoshal', img: 'https://c.saavncdn.com/artists/Shreya_Ghoshal_004_20231128073541_150x150.jpg' },
-  { name: 'Diljit Dosanjh', img: 'https://c.saavncdn.com/artists/Diljit_Dosanjh_004_20231025071115_150x150.jpg' },
-  { name: 'AP Dhillon', img: 'https://c.saavncdn.com/artists/AP_Dhillon_001_20231011082645_150x150.jpg' },
-  { name: 'AR Rahman', img: 'https://c.saavncdn.com/artists/AR_Rahman_002_20210120084534_150x150.jpg' },
-  { name: 'Pritam', img: 'https://c.saavncdn.com/artists/Pritam_003_20231114065604_150x150.jpg' },
-  { name: 'Taylor Swift', img: 'https://c.saavncdn.com/artists/Taylor_Swift_001_20231031154332_150x150.jpg' },
-  { name: 'Kishore Kumar', img: 'https://c.saavncdn.com/artists/Kishore_Kumar_002_20231110080838_150x150.jpg' },
-  { name: 'Ed Sheeran', img: 'https://c.saavncdn.com/artists/Ed_Sheeran_150x150.jpg' },
+  { name: 'Shreya Ghoshal', img: 'https://c.saavncdn.com/artists/Shreya_Ghoshal_007_20241101074144_150x150.jpg' },
+  { name: 'Diljit Dosanjh', img: 'https://c.saavncdn.com/artists/Diljit_Dosanjh_005_20231025073054_150x150.jpg' },
+  { name: 'AP Dhillon', img: 'https://c.saavncdn.com/artists/AP_Dhillon_004_20251023102150_150x150.jpg' },
+  { name: 'AR Rahman', img: 'https://c.saavncdn.com/artists/AR_Rahman_002_20210120084455_150x150.jpg' },
+  { name: 'Pritam', img: 'https://c.saavncdn.com/artists/Pritam_Chakraborty-20170711073326_150x150.jpg' },
+  { name: 'Taylor Swift', img: 'https://c.saavncdn.com/artists/Taylor_Swift_003_20200226074119_150x150.jpg' },
+  { name: 'Kishore Kumar', img: 'https://c.saavncdn.com/artists/Kishore_Kumar_150x150.jpg' },
+  { name: 'Ed Sheeran', img: 'https://c.saavncdn.com/artists/Ed_Sheeran_002_20250625073038_150x150.jpg' },
 ];
 
 function Onboarding({ user, onComplete }) {
