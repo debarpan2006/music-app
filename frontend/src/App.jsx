@@ -216,6 +216,7 @@ function MainApp({ user, logout }) {
   // Playback
   const [songs, setSongs] = useState([]);
   const [queue, setQueue] = useState([]); // Actual playback queue
+  const [searchSource, setSearchSource] = useState('saavn');
   const [currentSong, setCurrentSong] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -891,8 +892,11 @@ function MainApp({ user, logout }) {
       setLoading(true);
       setListLabel(`Results for "${query}"`);
       setSelectedChip(null);
+      let endpoint = '/api/search';
+      if (searchSource === 'youtube') endpoint = '/api/yt/search';
+      if (searchSource === 'apple') endpoint = '/api/apple/search';
       try {
-        const res = await axios.get(`/api/search?query=${encodeURIComponent(query)}`);
+        const res = await axios.get(`${endpoint}?query=${encodeURIComponent(query)}`);
         setSongs(res.data?.data?.results || []);
       } catch (e) {
         console.error("Live search failed", e);
@@ -908,7 +912,10 @@ function MainApp({ user, logout }) {
     setLoading(true);
     setListLabel(`Results for "${query}"`);
     setSelectedChip(null);
-    const res = await axios.get(`/api/search?query=${encodeURIComponent(query)}`);
+    let endpoint = '/api/search';
+    if (searchSource === 'youtube') endpoint = '/api/yt/search';
+    if (searchSource === 'apple') endpoint = '/api/apple/search';
+    const res = await axios.get(`${endpoint}?query=${encodeURIComponent(query)}`);
     setSongs(res.data?.data?.results || []);
     setLoading(false);
   };
@@ -918,8 +925,9 @@ function MainApp({ user, logout }) {
     setSelectedChip(chip.label);
     setLoading(true);
     setListLabel(chip.label);
+    const endpoint = searchSource === 'youtube' ? '/api/yt/search' : (searchSource === 'apple' ? '/api/apple/search' : '/api/search');
     try {
-      const res = await axios.get(`/api/search?query=${encodeURIComponent(chip.query)}`);
+      const res = await axios.get(`${endpoint}?query=${encodeURIComponent(chip.query)}`);
       const results = res.data?.data?.results || [];
       setSongs(results);
       if (results.length > 0) {
@@ -1341,6 +1349,16 @@ function MainApp({ user, logout }) {
           </div>
 
           <div className="topbar-search-container" style={{display: 'flex', flexGrow: 1, gap: '8px', maxWidth: '600px'}}>
+            <select
+              className="source-selector"
+              value={searchSource}
+              onChange={e => setSearchSource(e.target.value)}
+              style={{ padding: '0 12px', borderRadius: '24px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', outline: 'none', cursor: 'pointer', flexShrink: 0 }}
+            >
+              <option value="youtube">YouTube Music</option>
+              <option value="saavn">JioSaavn</option>
+              <option value="apple">Apple Music</option>
+            </select>
             <form onSubmit={searchSongs} className="search-bar" style={{ flexGrow: 1, maxWidth: '100%' }}>
               <span className="search-icon">🔍</span>
               <input
