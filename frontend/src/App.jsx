@@ -226,6 +226,15 @@ function MainApp({ user, logout }) {
   const [volume, setVolume] = useState(1);
   const [prevVolume, setPrevVolume] = useState(1);
   const audioRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const [ytReady, setYtReady] = useState(false);
+
+  useEffect(() => {
+    window.onYouTubeIframeAPIReady = () => {
+      console.log("YT API Ready ✨");
+      setYtReady(true);
+    };
+  }, []);
 
   // Player extras
   const [shuffle, setShuffle] = useState(false);
@@ -720,20 +729,56 @@ function MainApp({ user, logout }) {
       } catch (e) { console.error("Offline read failed", e); }
     }
 
-    // 1. CRITICAL FOR MOBILE: Prime the audio element synchronously within the click handler
-    if (audioRef.current) {
-        setIsBuffering(true);
-        if (existingUrl) {
-            audioRef.current.src = existingUrl;
-            audioRef.current.load();
-            audioRef.current.play()
-                .then(() => setIsBuffering(false))
-                .catch(() => {
-                    setIsBuffering(false);
-                    setIsPlaying(false);
-                });
-            setIsPlaying(true);
-        }
+    // 1. YouTube Native Support
+    if (song.source === 'youtube') {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+      setIsBuffering(true);
+      const videoId = song.ytVideoId || song.id.replace('yt_', '');
+
+      if (ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
+        ytPlayerRef.current.loadVideoById(videoId);
+        ytPlayerRef.current.playVideo();
+      } else if (ytReady) {
+        ytPlayerRef.current = new window.YT.Player('yt-player', {
+          height: '100%',
+          width: '100%',
+          videoId: videoId,
+          playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0 },
+          events: {
+            onReady: (e) => { e.target.playVideo(); setIsBuffering(false); },
+            onStateChange: (e) => {
+              setIsPlaying(e.data === window.YT.PlayerState.PLAYING);
+              if (e.data === window.YT.PlayerState.ENDED) handleSongEnd();
+              if (e.data === window.YT.PlayerState.BUFFERING) setIsBuffering(true);
+              if (e.data === window.YT.PlayerState.PLAYING) setIsBuffering(false);
+            },
+            onError: () => setIsBuffering(false)
+          }
+        });
+      }
+      setIsPlaying(true);
+    } else {
+      // 2. Audio Sources (JioSaavn / Deezer / Offline)
+      if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) {
+        ytPlayerRef.current.pauseVideo();
+      }
+      if (audioRef.current) {
+          setIsBuffering(true);
+          if (existingUrl) {
+              audioRef.current.src = existingUrl;
+              audioRef.current.load();
+              audioRef.current.play()
+                  .then(() => setIsBuffering(false))
+                  .catch(() => {
+                      setIsBuffering(false);
+                      setIsPlaying(false);
+                  });
+              setIsPlaying(true);
+          }
+      }
     }
 
     // 2. ASYNC: Cross-match for YouTube/Apple if URL is missing
@@ -798,7 +843,23 @@ function MainApp({ user, logout }) {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
-  }, [currentMood, playStartTime, prefetchNext, volume, songs]);
+  }, [currentMood, playStartTime, prefetchNext, volume, songs, ytReady]);
+
+  // Sync YouTube progress
+  useEffect(() => {
+    if (currentSong?.source !== 'youtube' || !ytPlayerRef.current) return;
+    const interval = setInterval(() => {
+      if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
+        const cur = ytPlayerRef.current.getCurrentTime();
+        const dur = ytPlayerRef.current.getDuration();
+        if (dur > 0) {
+          setProgress((cur / dur) * 100);
+          setDuration(dur);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentSong, isPlaying]);
 
   // ── Navigate by index (prev / next) ────────────────────────────────
   const playByIndex = useCallback((idx) => {
@@ -832,8 +893,13 @@ function MainApp({ user, logout }) {
   // ── Auto-next on song end ────────────────────────────────────────────
   const handleSongEnd = useCallback(() => {
     if (repeat === 'one') {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
+      if (currentSong?.source === 'youtube' && ytPlayerRef.current) {
+        ytPlayerRef.current.seekTo(0);
+        ytPlayerRef.current.playVideo();
+      } else {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
       return;
     }
     setIsPlaying(false);
@@ -943,6 +1009,12 @@ function MainApp({ user, logout }) {
 
   // ── Playback helpers ─────────────────────────────────────────────────
   const togglePlay = () => {
+    if (currentSong?.source === 'youtube' && ytPlayerRef.current) {
+      if (isPlaying) ytPlayerRef.current.pauseVideo();
+      else ytPlayerRef.current.playVideo();
+      setIsPlaying(!isPlaying);
+      return;
+    }
     if (!audioRef.current) return;
     if (isPlaying) { audioRef.current.pause(); } else { audioRef.current.play(); }
     setIsPlaying(!isPlaying);
@@ -968,9 +1040,15 @@ function MainApp({ user, logout }) {
   };
 
   const handleSeek = (e) => {
-    const t = (e.target.value / 100) * audioRef.current.duration;
-    audioRef.current.currentTime = t;
-    setProgress(e.target.value);
+    const val = e.target.value;
+    if (currentSong?.source === 'youtube' && ytPlayerRef.current) {
+      const d = ytPlayerRef.current.getDuration();
+      ytPlayerRef.current.seekTo((val / 100) * d);
+    } else {
+      const t = (val / 100) * audioRef.current.duration;
+      audioRef.current.currentTime = t;
+    }
+    setProgress(val);
   };
 
   const handleVolumeChange = (e) => {
@@ -1501,11 +1579,42 @@ function MainApp({ user, logout }) {
                   <div style={{ width: '44px' }} /> {/* Spacer for symmetry */}
                 </div>
 
-                {/* ── LARGE ARTWORK ── */}
+                {/* ── ARTWORK / VIDEO ── */}
                 <div className="ytm-art-container">
+                  {currentSong.source === 'youtube' ? (
+                    <div className="yt-video-frame-wrapper">
+                      {/* We use CSS to move the #yt-player here when needed */}
+                      <style>{`
+                        #yt-player {
+                          position: static !important;
+                          width: 100% !important;
+                          aspect-ratio: 16 / 9 !important;
+                          height: auto !important;
+                          opacity: 1 !important;
+                          pointer-events: auto !important;
+                          border-radius: 12px;
+                          overflow: hidden;
+                          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                        }
+                        .ytm-large-art.yt-hidden { display: none; }
+                      `}</style>
+                    </div>
+                  ) : (
+                    <style>{`
+                       #yt-player {
+                          position: fixed !important;
+                          bottom: 0 !important;
+                          right: 0 !important;
+                          width: 1px !important;
+                          height: 1px !important;
+                          opacity: 0 !important;
+                          pointer-events: none !important;
+                        }
+                    `}</style>
+                  )}
                   <img
                     src={currentSong.image?.[2]?.link || currentSong.image?.[1]?.link}
-                    className={`ytm-large-art ${isBuffering ? 'buffering-dim' : ''}`}
+                    className={`ytm-large-art ${isBuffering ? 'buffering-dim' : ''} ${currentSong.source === 'youtube' ? 'yt-hidden' : ''}`}
                     alt=""
                   />
                   {isBuffering && (

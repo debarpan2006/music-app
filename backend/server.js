@@ -61,6 +61,24 @@ const nvidia = new OpenAI({
   baseURL: 'https://integrate.api.nvidia.com/v1',
 });
 
+// ── YouTube Title Cleaning ────────────────────────────────────────────────
+const cleanTitle = (title) => {
+  if (!title) return '';
+  return title
+    .replace(/\(.*?\)/g, '')        // Remove (anything in brackets)
+    .replace(/\[.*?\]/g, '')        // Remove [anything in brackets]
+    .replace(/\|.*$/g, '')          // Remove everything after |
+    .replace(/ft\..*/gi, '')        // Remove ft. features
+    .replace(/official.*/gi, '')    // Remove "official video/audio"
+    .replace(/full.*/gi, '')        // Remove "full song/video"
+    .replace(/lyrics.*/gi, '')      // Remove "lyrics"
+    .replace(/hd.*/gi, '')          // Remove HD
+    .replace(/4k.*/gi, '')          // Remove 4K
+    .replace(/video.*/gi, '')       // Remove "video"
+    .replace(/audio.*/gi, '')       // Remove "audio"
+    .trim();
+};
+
 // ── Rich artist similarity graph ──────────────────────────────────────────
 const SIMILAR_ARTISTS = {
   'arijit singh': ['Jubin Nautiyal', 'Atif Aslam', 'KK', 'Mohit Chauhan', 'Armaan Malik', 'Darshan Raval'],
@@ -263,7 +281,7 @@ app.get('/api/yt/search', async (req, res) => {
     // Map YouTube response cleanly onto JioSaavn schema
     const mapped = songs.map(s => ({
       id: "yt_" + s.videoId,
-      name: s.name,
+      name: cleanTitle(s.name),
       ytVideoId: s.videoId,
       source: "youtube",
       duration: s.duration,
