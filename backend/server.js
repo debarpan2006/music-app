@@ -125,9 +125,18 @@ const mergeAndDedupe = (arrays, sessionIds = new Set(), maxTotal = 25) => {
   const seen = new Set();
   const results = [];
   for (const arr of arrays) {
+    if (!arr || !Array.isArray(arr)) continue;
     for (const song of arr) {
-      if (!seen.has(song.id)) {
+      if (!song || !song.id) continue;
+      // Extract a clean ID for deduplication: e.g. "yt_VIDEOID" or song ID.
+      // We also check for name + main artist similarity for cross-source deduplication.
+      const artist = (song.artists?.primary?.[0]?.name || song.artists?.all?.[0]?.name || song.primaryArtists || '').toLowerCase();
+      const name = (song.name || song.title || '').toLowerCase();
+      const uniqueKey = `${name}_${artist}`;
+
+      if (!seen.has(song.id) && !seen.has(uniqueKey)) {
         seen.add(song.id);
+        seen.add(uniqueKey);
         song._playedThisSession = sessionIds.has(song.id);
         results.push(song);
       }
@@ -180,10 +189,31 @@ app.get('/api/search-artists', async (req, res) => {
 app.get('/api/search', async (req, res) => {
   try {
     const { query, limit } = req.query;
-    const maxLimit = limit ? Number(limit) : 500; // Uncapped/large limit for search
-    const results = await saavnSearch(query, maxLimit);
-    res.json({ data: { results } });
+    if (!query) return res.json({ data: { results: [] } });
+    
+    // Multi-source Search: Parallelize for performance
+    const [saavnResults, ytResults] = await Promise.all([
+      saavnSearch(query, 15),
+      ytmusic.searchSongs(query).then(songs => songs.map(s => ({
+        id: "yt_" + s.videoId,
+        name: s.name,
+        ytVideoId: s.videoId,
+        source: "youtube",
+        duration: s.duration,
+        artists: { primary: [{ name: s.artist?.name || 'YouTube' }] },
+        image: [
+          { link: s.thumbnails?.[0]?.url || '' },
+          { link: s.thumbnails?.[1]?.url || s.thumbnails?.[0]?.url || '' },
+          { link: s.thumbnails?.[2]?.url || s.thumbnails?.[s.thumbnails.length-1]?.url || '' }
+        ]
+      }))).catch(() => [])
+    ]);
+
+    // Priority: Saavn official songs first, then YouTube additions
+    const merged = mergeAndDedupe([saavnResults, ytResults], new Set(), 30);
+    res.json({ data: { results: merged } });
   } catch (err) {
+    console.error("Unified search error:", err.message);
     res.status(500).json({ error: 'Search failed' });
   }
 });
