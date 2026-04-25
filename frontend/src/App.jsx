@@ -2433,7 +2433,7 @@ function Login({ onLogin }) {
   );
 }
 
-function MonthlyReplay() {
+function MonthlyReplay({ allSongs = [] }) {
   const allStats = loadMonthlyStats();
   const currentMonthKey = getMonthKey();
   const currentYear = currentMonthKey.split('-')[0];
