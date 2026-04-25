@@ -602,23 +602,27 @@ Return ONLY valid JSON format with no markdown:
     let lastfmSimilar = [];
     if (name && artist) {
       try {
-        const lfUrl = `${LASTFM_BASE}?method=track.getsimilar&track=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist)}&api_key=${LASTFM_API_KEY}&format=json&limit=8`;
+        const lfUrl = `${LASTFM_BASE}?method=track.getsimilar&track=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist)}&api_key=${LASTFM_API_KEY}&format=json&limit=15`;
         const lfRes = await axios.get(lfUrl);
         const lfTracks = lfRes.data?.similartracks?.track || [];
         lastfmSimilar = lfTracks.map(t => `${t.name} ${t.artist.name}`);
       } catch (e) { /* silent fallback */ }
     }
 
-    const finalQueries = [...aiQueries, ...lastfmSimilar.slice(0, 4)];
-    const searchResults = await Promise.allSettled(finalQueries.map((q) => saavnSearch(q, 12)));
-    const arrays = searchResults
-      .filter((r) => r.status === 'fulfilled')
-      .map((r) => r.value);
+    // --- Execute AI searches ---
+    const aiResults = await Promise.allSettled(aiQueries.map((q) => saavnSearch(q, 10)));
+    const aiArrays = aiResults.filter((r) => r.status === 'fulfilled').map((r) => r.value.map(s => ({ ...s, recSource: 'AI' })));
 
-    const rawSongs = mergeAndDedupe(arrays, sessionIds, 40);
-    const songs = scoreAndSort(rawSongs, songHistory).slice(0, 30);
+    // --- Execute Last.fm searches ---
+    const lfmResults = await Promise.allSettled(lastfmSimilar.slice(0, 8).map((q) => saavnSearch(q, 5)));
+    const lfmArrays = lfmResults.filter((r) => r.status === 'fulfilled').map((r) => r.value.map(s => ({ ...s, recSource: 'LFM' })));
 
-    res.json({ songs, queries: finalQueries });
+    // Merge and filter
+    const combinedArrays = [...aiArrays, ...lfmArrays];
+    const rawSongs = mergeAndDedupe(combinedArrays, sessionIds, 50);
+    const songs = scoreAndSort(rawSongs, songHistory).slice(0, 40);
+
+    res.json({ songs, queries: aiQueries });
   } catch (err) {
     res.status(500).json({ error: 'Next song fetch failed.' });
   }

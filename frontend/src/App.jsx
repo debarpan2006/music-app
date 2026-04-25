@@ -2205,14 +2205,16 @@ function MainApp({ user, logout }) {
                     <span className="rp-song-dur">{formatTime(song.duration)}</span>
                   </div>
                 ))}
-                {/* AI queued songs */}
-                {nextQueue.slice(0, 5).map(song => (
+                {/* AI / Last.fm queued songs */}
+                {nextQueue.map(song => (
                   <div key={song.id} className="rp-song-item rp-ai-queued"
                     onClick={() => playSong(song, currentMood)}>
                     <img src={song.image?.[1]?.link || song.image?.[0]?.link} className="rp-song-thumb" alt="" />
                     <div className="rp-song-info">
                       <p className="rp-song-name">{decodeText(song.name)}</p>
-                      <p className="rp-song-artist rp-ai-tag">✨ AI Pick · {song.artists?.primary?.map(a => a.name).join(', ')}</p>
+                      <p className={`rp-song-artist ${song.recSource === 'LFM' ? 'rp-lfm-tag' : 'rp-ai-tag'}`}>
+                        {song.recSource === 'LFM' ? '🎧 Similar vibe' : '✨ AI Selection'} · {song.artists?.primary?.map(a => a.name).join(', ')}
+                      </p>
                     </div>
                     <span className="rp-song-dur">{formatTime(song.duration)}</span>
                   </div>

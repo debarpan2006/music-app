@@ -2562,6 +2562,11 @@ input  { font-family: inherit; }
   animation: loading-bar-swipe 1.5s infinite ease-in-out;
 }
 
+.rp-lfm-tag {
+  color: #ff2a2a !important; /* Last.fm Red */
+  font-weight: 600;
+}
+
 @keyframes loading-bar-swipe {
   0% { transform: translateX(-100%); width: 30%; }
   50% { width: 60%; }
