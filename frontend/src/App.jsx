@@ -2421,18 +2421,15 @@ function MonthlyReplay() {
   const uniqueYears = [...new Set(availableMonths.map(m => m.split('-')[0]))];
   
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0] || getMonthKey());
-  const [isSecretUnlocked, setIsSecretUnlocked] = useState(false);
   const replayRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Add Yearly options ONLY if unlocked
+  // Add Yearly options to the selection list always
   const selectionOptions = [...availableMonths];
-  if (isSecretUnlocked) {
-    uniqueYears.forEach(y => {
-      const yearKey = `${y}-FULL`;
-      if (!selectionOptions.includes(yearKey)) selectionOptions.push(yearKey);
-    });
-  }
+  uniqueYears.forEach(y => {
+    const yearKey = `${y}-FULL`;
+    if (!selectionOptions.includes(yearKey)) selectionOptions.push(yearKey);
+  });
   const sortedOptions = selectionOptions.sort().reverse();
 
   // Aggregation logic for Full Year
@@ -2501,14 +2498,7 @@ function MonthlyReplay() {
     <div className="replay-section-wrapper" style={{ padding: '32px 20px', maxWidth: '1000px', margin: '0 auto', color: 'var(--text)', animation: 'fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1)' }}>
       {/* ── HEADER ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
-        <div onDoubleClick={() => {
-          setIsSecretUnlocked(true);
-          // Auto-select yearly if unlocking for the first time
-          if (!isSecretUnlocked) {
-            const currentYear = getMonthKey().split('-')[0];
-            setSelectedMonth(`${currentYear}-FULL`);
-          }
-        }} style={{ cursor: 'pointer' }}>
+        <div>
           <h1 style={{ 
             fontSize: '38px', 
             fontWeight: 900, 
