@@ -1406,7 +1406,7 @@ function MainApp({ user, logout }) {
           </div>
         </header>
 
-        {activeNav === 'about' ? <AboutCreator /> : activeNav === 'replay' ? <MonthlyReplay allSongs={[...likedSongs, ...downloadedSongs, ...(currentSong ? [currentSong] : []), ...history]} /> : activeNav === 'library' ? (
+        {activeNav === 'about' ? <AboutCreator /> : activeNav === 'replay' ? <MonthlyReplay /> : activeNav === 'library' ? (
           <div className="library-view">
             <h1 className="view-title">Your Library</h1>
             <button className="primary-btn-wide" onClick={createPlaylist}>
@@ -2433,7 +2433,7 @@ function Login({ onLogin }) {
   );
 }
 
-function MonthlyReplay({ allSongs = [] }) {
+function MonthlyReplay() {
   const allStats = loadMonthlyStats();
   const currentMonthKey = getMonthKey();
   const currentYear = currentMonthKey.split('-')[0];
@@ -2492,22 +2492,10 @@ function MonthlyReplay({ allSongs = [] }) {
   const artistImages = data.artistMetadata || {};
   const songImages = data.songMetadata || {};
   
-  // Robust image recovery: Search allSongs if metadata is missing in stats
-  const findArtistImg = (name) => {
-    if (artistImages[name]?.image) return artistImages[name].image;
-    const found = allSongs.find(s => s.artist?.includes(name) || s.subtitle?.includes(name));
-    return found?.artistImage || found?.image || null;
-  };
-  
-  const findSongImg = (name) => {
-    if (songImages[name]?.image) return songImages[name].image;
-    const found = allSongs.find(s => s.name === name || s.title === name);
-    return found?.image || null;
-  };
-
-  const topArtistImg = findArtistImg(topArtists[0]?.[0]) || 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop';
-  const topSongImgs = topSongs.map(s => findSongImg(s[0])).filter(i => i);
-  
+  // High quality fallbacks if metadata is missing
+  const topArtistImg = topArtists[0] ? (artistImages[topArtists[0][0]]?.image) : 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop';
+  const topSongImgs = topSongs.map(s => songImages[s[0]]?.image).filter(i => i);
+  // Add some beautiful generic placeholders if the list is still empty
   if (topSongImgs.length < 2) {
     topSongImgs.push('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop');
     topSongImgs.push('https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=2070&auto=format&fit=crop');
@@ -2585,11 +2573,10 @@ function MonthlyReplay({ allSongs = [] }) {
         <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '50%', background: 'radial-gradient(ellipse at top, rgba(255,61,61,0.2) 0%, transparent 60%)', filter: 'blur(50px)' }} />
         
         {/* Branding */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '60px', position: 'relative', zIndex: 2 }}>
-           <div style={{ fontSize: '20px', fontWeight: 900, color: 'white', letterSpacing: '1px' }}>Replay</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '80px', position: 'relative', zIndex: 2 }}>
+           <div style={{ fontSize: '18px', fontWeight: 900, color: 'white', letterSpacing: '1px' }}>Replay</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo.jpg" alt="Logo" style={{ width: '42px', height: '42px', borderRadius: '10px', objectFit: 'cover' }} />
-            <span style={{ fontSize: '20px', fontWeight: 800, color: '#f5f5f7' }}>Dil Se Suno</span>
+            <img src="/logo.jpg" alt="Logo" style={{ width: '60px', height: '60px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }} />
           </div>
         </div>
 
