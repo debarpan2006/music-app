@@ -2509,7 +2509,19 @@ function MonthlyReplay() {
             setSelectedMonth(`${currentYear}-FULL`);
           }
         }} style={{ cursor: 'pointer' }}>
-          <h1 style={{ fontSize: '38px', fontWeight: 900, letterSpacing: '-0.02em', background: isFullYear ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'linear-gradient(135deg, #FF3D3D, #FF8E53)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
+          <h1 style={{ 
+            fontSize: '38px', 
+            fontWeight: 900, 
+            letterSpacing: '-0.02em', 
+            background: isFullYear ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'linear-gradient(135deg, #FF3D3D, #FF8E53)', 
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text', 
+            textFillColor: 'transparent',
+            WebkitTextFillColor: 'transparent', 
+            color: 'transparent', // Fallback
+            margin: 0,
+            display: 'inline-block'
+          }}>
             {isFullYear ? `${selectedMonth.split('-')[0]} REPLAY` : monthLabel(selectedMonth).split(' ')[0] + ' Replay'}
           </h1>
           <p style={{ color: 'var(--text2)', marginTop: '8px', fontSize: '15px' }}>
