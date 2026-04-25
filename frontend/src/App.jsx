@@ -2460,13 +2460,17 @@ function MonthlyReplay() {
   const getData = () => {
     if (selectedMonth.endsWith('-FULL')) {
       const year = selectedMonth.split('-')[0];
-      const yearlyData = { songs: {}, artists: {}, genres: {}, totalMs: 0 };
+      const yearlyData = { songs: {}, artists: {}, genres: {}, totalMs: 0, songMetadata: {}, artistMetadata: {} };
       Object.entries(allStats).forEach(([key, val]) => {
         if (key.startsWith(year)) {
           yearlyData.totalMs += (val.totalMs || 0);
           Object.entries(val.songs || {}).forEach(([s, c]) => yearlyData.songs[s] = (yearlyData.songs[s] || 0) + c);
           Object.entries(val.artists || {}).forEach(([a, c]) => yearlyData.artists[a] = (yearlyData.artists[a] || 0) + c);
           Object.entries(val.genres || {}).forEach(([g, c]) => yearlyData.genres[g] = (yearlyData.genres[g] || 0) + c);
+          
+          // Merge metadata
+          Object.assign(yearlyData.songMetadata, val.songMetadata || {});
+          Object.assign(yearlyData.artistMetadata, val.artistMetadata || {});
         }
       });
       return yearlyData;
@@ -2488,9 +2492,14 @@ function MonthlyReplay() {
   const artistImages = data.artistMetadata || {};
   const songImages = data.songMetadata || {};
   
-  // Fallbacks if metadata is missing (for older plays)
-  const topArtistImg = topArtists[0] ? artistImages[topArtists[0][0]]?.image : 'https://images.unsplash.com/photo-1514525253361-bee047320b12';
+  // High quality fallbacks if metadata is missing
+  const topArtistImg = topArtists[0] ? (artistImages[topArtists[0][0]]?.image) : 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop';
   const topSongImgs = topSongs.map(s => songImages[s[0]]?.image).filter(i => i);
+  // Add some beautiful generic placeholders if the list is still empty
+  if (topSongImgs.length < 2) {
+    topSongImgs.push('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop');
+    topSongImgs.push('https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=2070&auto=format&fit=crop');
+  }
 
   const monthLabel = (key) => {
     if (!key) return '';
