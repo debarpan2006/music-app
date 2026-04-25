@@ -2499,19 +2499,7 @@ function MonthlyReplay() {
       {/* ── HEADER ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h1 style={{ 
-            fontSize: '38px', 
-            fontWeight: 900, 
-            letterSpacing: '-0.02em', 
-            background: isFullYear ? 'linear-gradient(135deg, #FFD700, #FFA500)' : 'linear-gradient(135deg, #FF3D3D, #FF8E53)', 
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text', 
-            textFillColor: 'transparent',
-            WebkitTextFillColor: 'transparent', 
-            color: 'transparent', // Fallback
-            margin: 0,
-            display: 'inline-block'
-          }}>
+          <h1 className="replay-title-gradient">
             {isFullYear ? `${selectedMonth.split('-')[0]} REPLAY` : monthLabel(selectedMonth).split(' ')[0] + ' Replay'}
           </h1>
           <p style={{ color: 'var(--text2)', marginTop: '8px', fontSize: '15px' }}>
@@ -2553,17 +2541,17 @@ function MonthlyReplay() {
         ref={replayRef} 
         id="sharing-card" 
         style={{ 
-          background: isFullYear ? 'linear-gradient(165deg, #1a1a1a 0%, #2c2200 100%)' : 'linear-gradient(165deg, #0f0f0f 0%, #1a1a1a 100%)', 
+          background: 'linear-gradient(165deg, #0f0f0f 0%, #1a1a1a 100%)', 
           borderRadius: '32px', 
           padding: '48px 40px', 
-          border: isFullYear ? '1px solid rgba(255,215,0,0.1)' : '1px solid rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,61,61,0.05)',
           boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
           position: 'relative',
           overflow: 'hidden'
         }}
       >
-        {/* Background Accents */}
-        <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: isFullYear ? 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(255,61,61,0.15) 0%, transparent 70%)', filter: 'blur(40px)' }} />
+        {/* Background Accents (RED) */}
+        <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(255,61,61,0.15) 0%, transparent 70%)', filter: 'blur(40px)' }} />
         <div style={{ position: 'absolute', bottom: '-80px', left: '-80px', width: '250px', height: '250px', background: 'radial-gradient(circle, rgba(108,99,255,0.1) 0%, transparent 70%)', filter: 'blur(40px)' }} />
 
         {/* Card Header */}
@@ -2579,15 +2567,15 @@ function MonthlyReplay() {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '4px' }}>Produced by</div>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: isFullYear ? '#FFD700' : 'var(--red)' }}>DEBARPAN CHAUDHURI</div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--red)' }}>DEBARPAN CHAUDHURI</div>
           </div>
         </div>
 
         {/* Hero Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '60px' }}>
           {[
-            { label: 'MINUTES', value: totalMin, color: isFullYear ? '#FFD700' : '#FF3D3D' },
-            { label: 'TRACKS', value: Object.keys(data.songs).length, color: isFullYear ? '#FFA500' : '#FF8E53' },
+            { label: 'MINUTES', value: totalMin, color: '#FF3D3D' },
+            { label: 'TRACKS', value: Object.keys(data.songs).length, color: '#FF8E53' },
             { label: 'ARTISTS', value: topArtists.length, color: '#6C63FF' },
             { label: 'GENRES', value: Object.keys(data.genres).length || 1, color: '#9B89FA' },
           ].map(stat => (
@@ -2604,12 +2592,12 @@ function MonthlyReplay() {
             <h3 style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', letterSpacing: '3px', marginBottom: '24px', fontWeight: 800 }}>MY TOP TRACKS</h3>
             {topSongs.slice(0, 5).map(([name, count], i) => (
               <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                <span style={{ fontSize: '18px', fontWeight: 900, color: isFullYear ? '#FFD700' : 'var(--red)', width: '30px' }}>0{i+1}</span>
+                <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--red)', width: '30px' }}>0{i+1}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '16px', fontWeight: 700, color: 'white', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>{name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
-                      <div style={{ width: `${(count / maxSongCount) * 100}%`, height: '100%', background: isFullYear ? '#FFD700' : 'var(--red)', borderRadius: '2px' }} />
+                      <div style={{ width: `${(count / maxSongCount) * 100}%`, height: '100%', background: 'var(--red)', borderRadius: '2px' }} />
                     </div>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{count} LPS</span>
                   </div>
@@ -2622,9 +2610,9 @@ function MonthlyReplay() {
             <h3 style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', letterSpacing: '3px', marginBottom: '24px', fontWeight: 800 }}>TOP ARTISTS</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {topArtists.map(([name, count], i) => (
-                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: i === 0 ? (isFullYear ? 'rgba(255,215,0,0.05)' : 'rgba(255,61,61,0.08)') : 'rgba(255,255,255,0.03)', borderRadius: '16px', border: i === 0 ? (isFullYear ? '1px solid rgba(255,215,0,0.2)' : '1px solid rgba(255,61,61,0.2)') : '1px solid transparent' }}>
+                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: i === 0 ? 'rgba(255,61,61,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: '16px', border: i === 0 ? '1px solid rgba(255,61,61,0.2)' : '1px solid transparent' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 900, color: isFullYear ? '#FFD700' : 'var(--red)' }}>{i+1}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--red)' }}>{i+1}</span>
                     <span style={{ fontSize: '15px', fontWeight: 700, color: 'white' }}>{name}</span>
                   </div>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.4)' }}>{count}</span>

@@ -2576,6 +2576,15 @@ input  { font-family: inherit; }
   transform: scale(0.98) !important;
 }
 
+.replay-title-gradient {
+  background: linear-gradient(135deg, #FF3D3D, #FF8E53) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: #FF3D3D; /* Fallback for very old browsers */
+  display: inline-block;
+}
+
 @keyframes loading-bar-swipe {
   0% { transform: translateX(-100%); width: 30%; }
   50% { width: 60%; }
