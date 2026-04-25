@@ -2615,7 +2615,7 @@ function MonthlyReplay() {
                   <span style={{ fontSize: '16px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '12px' }}>{i + 1}</span>
                   <div style={{ overflow: 'hidden' }}>
                     <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-                    <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', fontWeight: 600, marginTop: '2px' }}>{count} LPS</div>
+                    <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', fontWeight: 600, marginTop: '2px' }}>{count} times</div>
                   </div>
                 </div>
               ))}
