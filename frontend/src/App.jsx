@@ -182,6 +182,7 @@ const CHIPS_POOL = [
   { label: 'Feel good', query: 'feel good hindi songs' },
   { label: 'Romance', query: `romantic bollywood songs ${YEAR}` },
   { label: 'Relax', query: 'relaxing lofi hindi songs' },
+  { label: 'Global Charts', query: 'LASTFM_TRENDING' },
   { label: 'Party', query: `party hits bollywood ${YEAR}` },
   { label: 'Sleep', query: 'sleep calm music hindi' },
   { label: 'Energize', query: 'energetic workout hindi songs' },
@@ -236,7 +237,8 @@ function MainApp({ user, logout }) {
   // Right panel (UP NEXT / LYRICS / RELATED)
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState('upnext');
-  const [lyrics, setLyrics] = useState([]);        // [{time, text, romanized}]
+  const [lyrics, setLyrics] = useState([]);
+  const [similarSongs, setSimilarSongs] = useState([]);
   const [activeLyricIdx, setActiveLyricIdx] = useState(0);
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsAvailable, setLyricsAvailable] = useState(false);
@@ -603,6 +605,12 @@ function MainApp({ user, logout }) {
         }
       })
       .catch(() => setLyricsLoading(false));
+
+    // Fetch Last.fm Similar Tracks
+    axios.get(`/api/lastfm/similar?track=${trackName}&artist=${artistName}`)
+      .then(res => setSimilarSongs(res.data?.data?.results || []))
+      .catch(() => setSimilarSongs([]));
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.id]);
 
@@ -923,7 +931,8 @@ function MainApp({ user, logout }) {
     setLoading(true);
     setListLabel(chip.label);
     try {
-      const res = await axios.get(`/api/search/unified?query=${encodeURIComponent(chip.query)}`);
+      const endpoint = chip.query === 'LASTFM_TRENDING' ? '/api/lastfm/trending' : `/api/search/unified?query=${encodeURIComponent(chip.query)}`;
+      const res = await axios.get(endpoint);
       const results = res.data?.data?.results || [];
       setSongs(results);
       if (results.length > 0) {
@@ -2257,20 +2266,39 @@ function MainApp({ user, logout }) {
           {/* ── RELATED tab ── */}
           {rightPanelTab === 'related' && (
             <div className="rp-content">
-              {nextQueue.length > 0 ? (
+              {(nextQueue.length > 0 || similarSongs.length > 0) ? (
                 <div className="rp-song-list">
-                  <div className="rp-section-label">Recommended for you ✨</div>
-                  {nextQueue.slice(0, 20).map(song => (
-                    <div key={song.id} className="rp-song-item"
-                      onClick={() => playSong(song, currentMood)}>
-                      <img src={song.image?.[1]?.link || song.image?.[0]?.link} className="rp-song-thumb" alt="" />
-                      <div className="rp-song-info">
-                        <p className="rp-song-name">{decodeText(song.name)}</p>
-                        <p className="rp-song-artist">{song.artists?.primary?.map(a => a.name).join(', ')}</p>
-                      </div>
-                      <span className="rp-song-dur">{formatTime(song.duration)}</span>
-                    </div>
-                  ))}
+                  {similarSongs.length > 0 && (
+                    <>
+                      <div className="rp-section-label">Similar to this track (Last.fm) 🎧</div>
+                      {similarSongs.slice(0, 10).map(song => (
+                        <div key={song.id} className="rp-song-item"
+                          onClick={() => playSong(song, currentMood)}>
+                          <img src={song.image?.[1]?.link || song.image?.[0]?.link || '/logo.jpg'} className="rp-song-thumb" alt="" />
+                          <div className="rp-song-info">
+                            <p className="rp-song-name">{decodeText(song.name)}</p>
+                            <p className="rp-song-artist">{song.artists?.primary?.map(a => a.name).join(', ')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {nextQueue.length > 0 && (
+                    <>
+                      <div className="rp-section-label" style={{marginTop: '20px'}}>Sangeet Saathi Picks ✨</div>
+                      {nextQueue.slice(0, 15).map(song => (
+                        <div key={song.id} className="rp-song-item"
+                          onClick={() => playSong(song, currentMood)}>
+                          <img src={song.image?.[1]?.link || song.image?.[0]?.link} className="rp-song-thumb" alt="" />
+                          <div className="rp-song-info">
+                            <p className="rp-song-name">{decodeText(song.name)}</p>
+                            <p className="rp-song-artist">{song.artists?.primary?.map(a => a.name).join(', ')}</p>
+                          </div>
+                          <span className="rp-song-dur">{formatTime(song.duration)}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="lyrics-state">

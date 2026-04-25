@@ -10,6 +10,9 @@ const ytmusic = new YTMusic();
 const YT_AUTH = process.env.YT_AUTH || ""; // User can set this in Vercel/Environment
 const YOUTUBE_API_KEY = "AIzaSyB9V4KTQ7IfinBKw6-P85CAz7zPI9_Jaho"; // Official Google Cloud Key
 
+const LASTFM_API_KEY = "7b3b51559253641a6575754b7f8e82e1";
+const LASTFM_BASE = "https://ws.audioscrobbler.com/2.0/";
+
 async function initYT() {
   try {
     if (YT_AUTH) {
@@ -246,6 +249,56 @@ app.get('/api/search/unified', async (req, res) => {
   } catch (err) {
     console.error("Unified search fail:", err.message);
     res.status(500).json({ error: 'Unified Search failed' });
+  }
+});
+
+app.get('/api/lastfm/trending', async (req, res) => {
+  try {
+    const url = `${LASTFM_BASE}?method=chart.gettoptracks&api_key=${LASTFM_API_KEY}&format=json&limit=25`;
+    const response = await axios.get(url);
+    const tracks = response.data?.tracks?.track || [];
+    
+    // Map to our Unified Music Schema
+    const mapped = tracks.map(t => ({
+      id: `lfm_${t.name}_${t.artist.name}`.replace(/\s+/g, '_'),
+      name: t.name,
+      source: "saavn", // Default to saavn for playback bridging
+      artists: { primary: [{ name: t.artist.name }] },
+      image: [
+        { link: t.image?.[1]?.['#text'] || '' },
+        { link: t.image?.[2]?.['#text'] || '' },
+        { link: t.image?.[3]?.['#text'] || '' }
+      ]
+    }));
+    res.json({ data: { results: mapped } });
+  } catch (err) {
+    res.status(500).json({ error: 'LastFM Trending failed' });
+  }
+});
+
+app.get('/api/lastfm/similar', async (req, res) => {
+  try {
+    const { track, artist } = req.query;
+    if (!track || !artist) return res.json({ data: { results: [] } });
+    
+    const url = `${LASTFM_BASE}?method=track.getsimilar&track=${encodeURIComponent(track)}&artist=${encodeURIComponent(artist)}&api_key=${LASTFM_API_KEY}&format=json&limit=15`;
+    const response = await axios.get(url);
+    const tracks = response.data?.similartracks?.track || [];
+    
+    const mapped = tracks.map(t => ({
+      id: `lfm_sim_${t.name}_${t.artist.name}`.replace(/\s+/g, '_'),
+      name: t.name,
+      source: "saavn",
+      artists: { primary: [{ name: t.artist.name }] },
+      image: [
+        { link: t.image?.[1]?.['#text'] || '' },
+        { link: t.image?.[2]?.['#text'] || '' },
+        { link: t.image?.[3]?.['#text'] || '' }
+      ]
+    }));
+    res.json({ data: { results: mapped } });
+  } catch (err) {
+    res.status(500).json({ error: 'LastFM Similar failed' });
   }
 });
 
@@ -545,15 +598,27 @@ Return ONLY valid JSON format with no markdown:
       ];
     }
 
-    const searchResults = await Promise.allSettled(aiQueries.map((q) => saavnSearch(q, 15)));
+    // --- Last.fm Similar tracks enrichment ---
+    let lastfmSimilar = [];
+    if (name && artist) {
+      try {
+        const lfUrl = `${LASTFM_BASE}?method=track.getsimilar&track=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist)}&api_key=${LASTFM_API_KEY}&format=json&limit=8`;
+        const lfRes = await axios.get(lfUrl);
+        const lfTracks = lfRes.data?.similartracks?.track || [];
+        lastfmSimilar = lfTracks.map(t => `${t.name} ${t.artist.name}`);
+      } catch (e) { /* silent fallback */ }
+    }
+
+    const finalQueries = [...aiQueries, ...lastfmSimilar.slice(0, 4)];
+    const searchResults = await Promise.allSettled(finalQueries.map((q) => saavnSearch(q, 12)));
     const arrays = searchResults
       .filter((r) => r.status === 'fulfilled')
       .map((r) => r.value);
 
-    const rawSongs = mergeAndDedupe(arrays, sessionIds, 30);
-    const songs = scoreAndSort(rawSongs, songHistory).slice(0, 25);
+    const rawSongs = mergeAndDedupe(arrays, sessionIds, 40);
+    const songs = scoreAndSort(rawSongs, songHistory).slice(0, 30);
 
-    res.json({ songs, queries: aiQueries });
+    res.json({ songs, queries: finalQueries });
   } catch (err) {
     res.status(500).json({ error: 'Next song fetch failed.' });
   }
