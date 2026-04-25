@@ -2589,12 +2589,11 @@ function MonthlyReplay() {
         </div>
 
         {/* Hero Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '60px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '60px' }}>
           {[
             { label: 'MINUTES', value: totalMin, color: '#FF3D3D' },
             { label: 'TRACKS', value: Object.keys(data.songs).length, color: '#FF8E53' },
             { label: 'ARTISTS', value: topArtists.length, color: '#6C63FF' },
-            { label: 'GENRES', value: Object.keys(data.genres).length || 1, color: '#9B89FA' },
           ].map(stat => (
             <div key={stat.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '24px 16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.3)', marginBottom: '8px', letterSpacing: '1px' }}>{stat.label}</div>
