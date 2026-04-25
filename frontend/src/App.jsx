@@ -2696,25 +2696,6 @@ function MonthlyReplay() {
   );
 }
 
-        {/* Footer Promo */}
-        <div style={{ marginTop: '60px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.5px' }}>
-            YOUR MUSIC VIBE IS UNIQUE. GET YOUR {isFullYear ? 'YEARLY' : 'MONTHLY'} REPLAY AT <span style={{ color: 'white', fontWeight: 800 }}>MUSIC-APP-THREE-GULES.VERCEL.APP</span>
-          </div>
-        </div>
-      </div>
-
-      {availableMonths.length === 0 && (
-        <div style={{ marginTop: '40px', textAlign: 'center', padding: '60px', background: 'var(--surface)', borderRadius: '32px', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎧</div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Vibe Check Pending!</h2>
-          <p style={{ color: 'var(--text2)', fontSize: '16px' }}>Start playing your favorite tracks to generate your Yearly Replay.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 const ONBOARDING_GENRES = ['Bollywood', 'Punjabi', 'Lofi', 'Pop', 'Retro', 'Devotional', 'Hip Hop', 'Indie', 'Acoustic'];
 const ONBOARDING_ARTISTS_DEFAULT = [
   { name: 'Arijit Singh', img: 'https://c.saavncdn.com/artists/Arijit_Singh_004_20241118063717_150x150.jpg' },
