@@ -2413,6 +2413,8 @@ function MonthlyReplay() {
   const allStats = loadMonthlyStats();
   const availableMonths = Object.keys(allStats).sort().reverse();
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0] || getMonthKey());
+  const replayRef = useRef(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const data = allStats[selectedMonth] || { songs: {}, artists: {}, genres: {}, totalMs: 0 };
 
@@ -2434,99 +2436,171 @@ function MonthlyReplay() {
   const maxSongCount = topSongs[0]?.[1] || 1;
   const maxArtistCount = topArtists[0]?.[1] || 1;
 
+  const downloadReplay = async () => {
+    if (!replayRef.current) return;
+    setIsExporting(true);
+    try {
+      // Small delay to ensure any hover states or transitions are settled
+      await new Promise(r => setTimeout(r, 100));
+      const canvas = await window.html2canvas(replayRef.current, {
+        backgroundColor: '#000000',
+        scale: 2, // High resolution
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `Dil_Se_Suno_Replay_${selectedMonth}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Sharing failed:', err);
+      alert('Failed to generate sharing image. Please try again.');
+    }
+    setIsExporting(false);
+  };
+
   return (
-    <div style={{ padding: '32px', maxWidth: '960px', margin: '0 auto', color: 'var(--text)', animation: 'fadeIn 0.4s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+    <div className="replay-section-wrapper" style={{ padding: '32px 20px', maxWidth: '1000px', margin: '0 auto', color: 'var(--text)', animation: 'fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1)' }}>
+      {/* ── HEADER ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h1 style={{ fontSize: '36px', fontWeight: 800, background: 'linear-gradient(90deg, var(--red), #ff7e67)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
-            Monthly Replay
+          <h1 style={{ fontSize: '38px', fontWeight: 900, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #FF3D3D, #FF8E53)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
+            {monthLabel(selectedMonth).split(' ')[0]} Replay
           </h1>
-          <p style={{ color: 'var(--text2)', marginTop: '6px' }}>Your personal music stats, month by month</p>
+          <p style={{ color: 'var(--text2)', marginTop: '8px', fontSize: '15px' }}>Your musical essence, captured for you.</p>
         </div>
-        <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-          style={{ padding: '12px 20px', borderRadius: '12px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', fontSize: '15px', cursor: 'pointer', outline: 'none' }}>
-          {availableMonths.length === 0
-            ? <option value={getMonthKey()}>{monthLabel(getMonthKey())}</option>
-            : availableMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)
-          }
-        </select>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button 
+            onClick={downloadReplay}
+            disabled={isExporting}
+            className="share-insta-btn"
+            style={{ 
+              padding: '12px 24px', 
+              borderRadius: '30px', 
+              background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', 
+              color: 'white', 
+              border: 'none', 
+              fontWeight: 700, 
+              fontSize: '14px', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              boxShadow: '0 4px 15px rgba(220, 39, 67, 0.3)',
+              transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            {isExporting ? 'Generating...' : <>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              Share to Insta
+            </>}
+          </button>
+          <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+            style={{ padding: '12px 18px', borderRadius: '14px', background: 'var(--surface)', color: 'var(--text1)', border: '1px solid var(--border)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', outline: 'none' }}>
+            {availableMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+          </select>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '36px' }}>
-        {[
-          { label: 'Total Minutes', value: totalMin, icon: '⏱️', sub: `${totalHours} hours` },
-          { label: 'Songs Played', value: Object.keys(data.songs).length, icon: '🎵', sub: 'unique tracks' },
-          { label: 'Top Artists', value: topArtists.length, icon: '🎤', sub: 'artists listened' },
-          { label: 'Genres', value: Object.keys(data.genres).length || '—', icon: '🎼', sub: 'genres explored' },
-        ].map(card => (
-          <div key={card.label} style={{ background: 'var(--surface)', borderRadius: '20px', padding: '24px', textAlign: 'center', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>{card.icon}</div>
-            <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--red)' }}>{card.value}</div>
-            <div style={{ color: 'var(--text)', fontWeight: 600, marginTop: '4px' }}>{card.label}</div>
-            <div style={{ color: 'var(--text2)', fontSize: '12px', marginTop: '2px' }}>{card.sub}</div>
-          </div>
-        ))}
-      </div>
+      {/* ── MAIN SHARE CARD ── */}
+      <div 
+        ref={replayRef} 
+        id="sharing-card" 
+        style={{ 
+          background: 'linear-gradient(165deg, #0f0f0f 0%, #1a1a1a 100%)', 
+          borderRadius: '32px', 
+          padding: '48px 40px', 
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Background Accents */}
+        <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(255,61,61,0.15) 0%, transparent 70%)', filter: 'blur(40px)' }} />
+        <div style={{ position: 'absolute', bottom: '-80px', left: '-80px', width: '250px', height: '250px', background: 'radial-gradient(circle, rgba(108,99,255,0.1) 0%, transparent 70%)', filter: 'blur(40px)' }} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-        <div style={{ background: 'var(--surface)', borderRadius: '20px', padding: '28px', border: '1px solid var(--border)' }}>
-          <h2 style={{ color: 'var(--red)', marginBottom: '20px', fontSize: '18px' }}>🎵 Top Songs</h2>
-          {topSongs.length === 0
-            ? <p style={{ color: 'var(--text2)' }}>No data yet — start listening!</p>
-            : topSongs.map(([name, count], i) => (
-              <div key={name} style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--text)', fontWeight: i === 0 ? 700 : 400, fontSize: '14px', flex: 1, marginRight: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`} {name}
-                  </span>
-                  <span style={{ color: 'var(--text2)', fontSize: '13px', whiteSpace: 'nowrap' }}>{count} plays</span>
-                </div>
-                <div style={{ height: '4px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${(count / maxSongCount) * 100}%`, background: 'linear-gradient(90deg, var(--red), #ff7e67)', borderRadius: '4px', transition: 'width 0.6s ease' }} />
-                </div>
-              </div>
-            ))
-          }
-        </div>
-
-        <div style={{ background: 'var(--surface)', borderRadius: '20px', padding: '28px', border: '1px solid var(--border)' }}>
-          <h2 style={{ color: 'var(--red)', marginBottom: '20px', fontSize: '18px' }}>🎤 Top Artists</h2>
-          {topArtists.length === 0
-            ? <p style={{ color: 'var(--text2)' }}>No data yet — start listening!</p>
-            : topArtists.map(([name, count], i) => (
-              <div key={name} style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--text)', fontWeight: i === 0 ? 700 : 400, fontSize: '14px' }}>
-                    {['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][i]} {name}
-                  </span>
-                  <span style={{ color: 'var(--text2)', fontSize: '13px' }}>{count} plays</span>
-                </div>
-                <div style={{ height: '4px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${(count / maxArtistCount) * 100}%`, background: 'linear-gradient(90deg, #6c63ff, #9b89fa)', borderRadius: '4px', transition: 'width 0.6s ease' }} />
-                </div>
-              </div>
-            ))
-          }
-          {topGenres.length > 0 && (
-            <div style={{ marginTop: '28px' }}>
-              <h2 style={{ color: 'var(--red)', marginBottom: '16px', fontSize: '18px' }}>🎼 Top Genres</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {topGenres.map(([genre, count]) => (
-                  <span key={genre} style={{ padding: '8px 16px', background: 'rgba(255,0,0,0.1)', color: 'var(--red)', borderRadius: '24px', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(255,0,0,0.2)' }}>
-                    {genre} · {count}
-                  </span>
-                ))}
-              </div>
+        {/* Card Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '10px' }} />
+              <span style={{ fontSize: '24px', fontWeight: 900, color: 'white', letterSpacing: '1px' }}>DIL SE SUNO</span>
             </div>
-          )}
+            <div style={{ fontSize: '20px', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{monthLabel(selectedMonth).toUpperCase()}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '4px' }}>Produced by</div>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--red)' }}>DEBARPAN CHAUDHURI</div>
+          </div>
+        </div>
+
+        {/* Hero Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '60px' }}>
+          {[
+            { label: 'MINUTES', value: totalMin, color: '#FF3D3D' },
+            { label: 'TRACKS', value: Object.keys(data.songs).length, color: '#FF8E53' },
+            { label: 'ARTISTS', value: topArtists.length, color: '#6C63FF' },
+            { label: 'GENRES', value: Object.keys(data.genres).length || 1, color: '#9B89FA' },
+          ].map(stat => (
+            <div key={stat.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '24px 16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.3)', marginBottom: '8px', letterSpacing: '1px' }}>{stat.label}</div>
+              <div style={{ fontSize: '38px', fontWeight: 900, color: stat.color }}>{stat.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Top Lists */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '48px' }}>
+          <div>
+            <h3 style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', letterSpacing: '3px', marginBottom: '24px', fontWeight: 800 }}>MY TOP TRACKS</h3>
+            {topSongs.slice(0, 5).map(([name, count], i) => (
+              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                <span style={{ fontSize: '18px', fontWeight: 900, color: i === 0 ? 'var(--red)' : 'rgba(255,255,255,0.2)', width: '30px' }}>0{i+1}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'white', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>{name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
+                      <div style={{ width: `${(count / maxSongCount) * 100}%`, height: '100%', background: 'var(--red)', borderRadius: '2px' }} />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{count} LPS</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h3 style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', letterSpacing: '3px', marginBottom: '24px', fontWeight: 800 }}>TOP ARTISTS</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {topArtists.map(([name, count], i) => (
+                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: i === 0 ? 'rgba(255,61,61,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: '16px', border: i === 0 ? '1px solid rgba(255,61,61,0.2)' : '1px solid transparent' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: i === 0 ? 'var(--red)' : 'rgba(255,255,255,0.2)' }}>{i+1}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'white' }}>{name}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.4)' }}>{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Promo */}
+        <div style={{ marginTop: '60px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '32px', textAlign: 'center' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.5px' }}>
+            YOUR MUSIC VIBE IS UNIQUE. GET YOUR REPLAY AT <span style={{ color: 'white', fontWeight: 800 }}>MUSIC-APP-THREE-GULES.VERCEL.APP</span>
+          </div>
         </div>
       </div>
 
       {availableMonths.length === 0 && (
-        <div style={{ marginTop: '40px', textAlign: 'center', color: 'var(--text2)', padding: '40px', background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎧</div>
-          <p style={{ fontSize: '18px', marginBottom: '8px' }}>No listening data yet for this month!</p>
-          <p style={{ fontSize: '14px' }}>Start playing some songs and your stats will appear here automatically.</p>
+        <div style={{ marginTop: '40px', textAlign: 'center', padding: '60px', background: 'var(--surface)', borderRadius: '32px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎧</div>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Vibe Check Pending!</h2>
+          <p style={{ color: 'var(--text2)', fontSize: '16px' }}>Start playing your favorite tracks to generate your Monthly Replay.</p>
         </div>
       )}
     </div>

@@ -2567,6 +2567,15 @@ input  { font-family: inherit; }
   font-weight: 600;
 }
 
+.share-insta-btn:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 8px 25px rgba(220, 39, 67, 0.4) !important;
+}
+
+.share-insta-btn:active {
+  transform: scale(0.98) !important;
+}
+
 @keyframes loading-bar-swipe {
   0% { transform: translateX(-100%); width: 30%; }
   50% { width: 60%; }
