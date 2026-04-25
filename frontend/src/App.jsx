@@ -111,8 +111,10 @@ const recordMonthlyPlay = (song, listenedMs = 0) => {
   if (!stats[key]) stats[key] = { songs: {}, artists: {}, genres: {}, totalMs: 0 };
   const m = stats[key];
   const songName = song.name || 'Unknown';
+  const songImage = song.image || '';
   let artist = resolveArtist(song);
   if (!artist || artist === '—') artist = 'Unknown';
+  const artistImg = song.artistImage || '';
 
   // Extract better genres from song metadata
   let finalGenre = song.genre || '';
@@ -125,10 +127,15 @@ const recordMonthlyPlay = (song, listenedMs = 0) => {
   }
 
   m.songs[songName] = (m.songs[songName] || 0) + 1;
+  // Save most recent metadata for visual replay
+  if (!m.songMetadata) m.songMetadata = {};
+  m.songMetadata[songName] = { image: songImage };
 
   // Track individual artists separately
   artist.split(',').map(a => a.trim()).filter(a => a && a !== 'Unknown' && a !== '—').forEach(a => {
     m.artists[a] = (m.artists[a] || 0) + 1;
+    if (!m.artistMetadata) m.artistMetadata = {};
+    if (artistImg) m.artistMetadata[a] = { image: artistImg };
   });
 
   // Track genres (allow comma separated)
@@ -2470,14 +2477,20 @@ function MonthlyReplay() {
   const data = getData();
   const isFullYear = selectedMonth.endsWith('-FULL');
 
-  const topSongs = Object.entries(data.songs).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const topSongs = Object.entries(data.songs).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const topArtists = Object.entries(data.artists)
     .filter(([name]) => name && name.toLowerCase() !== 'unknown' && name !== ' — ')
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  const topGenres = Object.entries(data.genres).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const totalMin = Math.round((data.totalMs || 0) / 60000);
-  const totalHours = (totalMin / 60).toFixed(1);
+
+  // Attempt to find metadata for visual appeal
+  const artistImages = data.artistMetadata || {};
+  const songImages = data.songMetadata || {};
+  
+  // Fallbacks if metadata is missing (for older plays)
+  const topArtistImg = topArtists[0] ? artistImages[topArtists[0][0]]?.image : 'https://images.unsplash.com/photo-1514525253361-bee047320b12';
+  const topSongImgs = topSongs.map(s => songImages[s[0]]?.image).filter(i => i);
 
   const monthLabel = (key) => {
     if (!key) return '';
@@ -2486,9 +2499,6 @@ function MonthlyReplay() {
     return new Date(Number(y), Number(m) - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
   };
 
-  const maxSongCount = topSongs[0]?.[1] || 1;
-  const maxArtistCount = topArtists[0]?.[1] || 1;
-
   const downloadReplay = async () => {
     if (!replayRef.current) return;
     setIsExporting(true);
@@ -2496,12 +2506,13 @@ function MonthlyReplay() {
       await new Promise(r => setTimeout(r, 100));
       const canvas = await window.html2canvas(replayRef.current, {
         backgroundColor: '#000000',
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
       });
       const link = document.createElement('a');
-      link.download = `Dil_Se_Suno_${isFullYear ? 'Yearly' : 'Monthly'}_Replay_${selectedMonth}.png`;
+      const filename = `Dil_Se_Suno_${isFullYear ? 'Full_Year' : monthLabel(selectedMonth).replace(' ','_')}_Replay.png`;
+      link.download = filename;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err) {
@@ -2513,37 +2524,15 @@ function MonthlyReplay() {
 
   return (
     <div className="replay-section-wrapper" style={{ padding: '32px 20px', maxWidth: '1000px', margin: '0 auto', color: 'var(--text)', animation: 'fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1)' }}>
-      {/* ── HEADER ── */}
+      {/* ── CONTROLS ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h1 className="replay-title-gradient">
-            {isFullYear ? `${selectedMonth.split('-')[0]} REPLAY` : monthLabel(selectedMonth).split(' ')[0] + ' Replay'}
-          </h1>
-          <p style={{ color: 'var(--text2)', marginTop: '8px', fontSize: '15px' }}>
-            {isFullYear ? 'Your musical journey across the entire year.' : 'Your musical essence, captured for you.'}
-          </p>
+          <h1 className="replay-title-gradient">Monthly Replay</h1>
+          <p style={{ color: 'var(--text2)', marginTop: '8px', fontSize: '15px' }}>Your musical essence, captured for you.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button 
-            onClick={downloadReplay}
-            disabled={isExporting}
-            className="share-insta-btn"
-            style={{ 
-              padding: '12px 24px', 
-              borderRadius: '30px', 
-              background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', 
-              color: 'white', 
-              border: 'none', 
-              fontWeight: 700, 
-              fontSize: '14px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              boxShadow: '0 4px 15px rgba(220, 39, 67, 0.3)',
-              transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-            }}
-          >
+          <button onClick={downloadReplay} disabled={isExporting} className="share-insta-btn"
+            style={{ padding: '12px 24px', borderRadius: '30px', background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', color: 'white', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(220, 39, 67, 0.3)' }}>
             {isExporting ? 'Generating...' : 'Share to Insta'}
           </button>
           <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
@@ -2553,90 +2542,150 @@ function MonthlyReplay() {
         </div>
       </div>
 
-      {/* ── MAIN SHARE CARD ── */}
+      {/* ── APPLE MUSIC STYLE STORY CARD ── */}
       <div 
         ref={replayRef} 
-        id="sharing-card" 
         style={{ 
-          background: 'linear-gradient(165deg, #0f0f0f 0%, #1a1a1a 100%)', 
-          borderRadius: '32px', 
-          padding: '48px 40px', 
-          border: '1px solid rgba(255,61,61,0.05)',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+          width: '100%', 
+          maxWidth: '540px', // Standard story width (multiplied internally by scale 3)
+          aspectRatio: '9 / 16',
+          margin: '0 auto',
+          background: 'black', 
+          borderRadius: '24px', 
+          padding: '60px 40px', 
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 40px 100px rgba(0,0,0,0.8)'
         }}
       >
-        {/* Background Accents (RED) */}
-        <div style={{ position: 'absolute', top: '-100px', right: '-100px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(255,61,61,0.15) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-        <div style={{ position: 'absolute', bottom: '-80px', left: '-80px', width: '250px', height: '250px', background: 'radial-gradient(circle, rgba(108,99,255,0.1) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-
-        {/* Card Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '10px' }} />
-              <span style={{ fontSize: '24px', fontWeight: 900, color: 'white', letterSpacing: '1px' }}>DIL SE SUNO</span>
-            </div>
-            <div style={{ fontSize: '20px', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
-              {isFullYear ? `Full Year ${selectedMonth.split('-')[0]}`.toUpperCase() : monthLabel(selectedMonth).toUpperCase()}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '4px' }}>Produced by</div>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--red)' }}>DEBARPAN CHAUDHURI</div>
+        {/* Abstract Background Accents */}
+        <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '50%', background: 'radial-gradient(ellipse at top, rgba(255,61,61,0.2) 0%, transparent 60%)', filter: 'blur(50px)' }} />
+        
+        {/* Branding */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '80px', position: 'relative', zIndex: 2 }}>
+           <div style={{ fontSize: '18px', fontWeight: 900, color: 'white', letterSpacing: '1px' }}>Replay</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/logo.jpg" alt="Logo" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#f5f5f7' }}>Dil Se Suno</span>
           </div>
         </div>
 
-        {/* Hero Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '60px' }}>
-          {[
-            { label: 'MINUTES', value: totalMin, color: '#FF3D3D' },
-            { label: 'TRACKS', value: Object.keys(data.songs).length, color: '#FF8E53' },
-            { label: 'ARTISTS', value: topArtists.length, color: '#6C63FF' },
-          ].map(stat => (
-            <div key={stat.label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '24px', padding: '24px 16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.3)', marginBottom: '8px', letterSpacing: '1px' }}>{stat.label}</div>
-              <div style={{ fontSize: '38px', fontWeight: 900, color: stat.color }}>{stat.value}</div>
-            </div>
-          ))}
+        {/* Hero Title */}
+        <div style={{ textAlign: 'center', marginBottom: '100px', position: 'relative', zIndex: 2 }}>
+          <h2 style={{ fontSize: '48px', fontWeight: 800, color: 'white', margin: 0, letterSpacing: '-0.03em' }}>
+            {isFullYear ? `Full Year ${selectedMonth.split('-')[0]}` : monthLabel(selectedMonth).split(' ')[0]}
+          </h2>
+          <div style={{ fontSize: '44px', fontWeight: 800, color: 'white', letterSpacing: '-0.02em', marginTop: '-4px' }}>
+            {isFullYear ? '' : selectedMonth.split('-')[0]}
+          </div>
+          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.4)', marginTop: '12px', fontWeight: 600 }}>{totalMin} minutes</p>
         </div>
 
-        {/* Top Lists */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '48px' }}>
-          <div>
-            <h3 style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', letterSpacing: '3px', marginBottom: '24px', fontWeight: 800 }}>MY TOP TRACKS</h3>
-            {topSongs.slice(0, 5).map(([name, count], i) => (
-              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                <span style={{ fontSize: '18px', fontWeight: 900, color: 'var(--red)', width: '30px' }}>0{i+1}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'white', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>{name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ flex: 1, height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}>
-                      <div style={{ width: `${(count / maxSongCount) * 100}%`, height: '100%', background: 'var(--red)', borderRadius: '2px' }} />
-                    </div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>{count} LPS</span>
-                  </div>
+        {/* Content Section */}
+        <div style={{ display: 'flex', flex: 1, position: 'relative', zIndex: 2 }}>
+          {/* Left Column: Lists */}
+          <div style={{ width: '60%' }}>
+            {/* Top Artists List */}
+            <div style={{ marginBottom: '60px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'white', marginBottom: '24px' }}>Top Artists</h3>
+              {topArtists.slice(0, 3).map(([name, count], i) => (
+                <div key={name} style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '12px' }}>{i + 1}</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div>
-            <h3 style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', letterSpacing: '3px', marginBottom: '24px', fontWeight: 800 }}>TOP ARTISTS</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {topArtists.map(([name, count], i) => (
-                <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: i === 0 ? 'rgba(255,61,61,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: '16px', border: i === 0 ? '1px solid rgba(255,61,61,0.2)' : '1px solid transparent' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--red)' }}>{i+1}</span>
-                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'white' }}>{name}</span>
+            {/* Top Songs List */}
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'white', marginBottom: '24px' }}>Top Songs</h3>
+              {topSongs.slice(0, 3).map(([name, count], i) => (
+                <div key={name} style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '12px' }}>{i + 1}</span>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                    <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', fontWeight: 600, marginTop: '2px' }}>{count} LPS</div>
                   </div>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.4)' }}>{count}</span>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Right Column: Visuals (Floating Images) */}
+          <div style={{ width: '40%', position: 'relative' }}>
+             {/* Circular Top Artist */}
+             <div style={{ 
+               position: 'absolute', 
+               top: '-40px', 
+               right: '-20px', 
+               width: '240px', 
+               height: '240px', 
+               borderRadius: '50%', 
+               overflow: 'hidden', 
+               border: '10px solid black',
+               boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+               background: '#1a1a1a'
+             }}>
+               <img src={topArtistImg || 'https://via.placeholder.com/240'} alt="Top Artist" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+             </div>
+
+             {/* Stacked Album Arts */}
+             <div style={{ position: 'absolute', bottom: '0', right: '-20px', width: '220px' }}>
+                {/* Second Album */}
+                <div style={{ 
+                  width: '100%', 
+                  aspectRatio: '1', 
+                  borderRadius: '16px', 
+                  overflow: 'hidden', 
+                  transform: 'rotate(-5deg) translateY(40px)',
+                  boxShadow: '0 15px 30px rgba(0,0,0,0.5)',
+                  background: '#1a1a1a',
+                  zIndex: 1
+                }}>
+                  <img src={topSongImgs[1] || topSongImgs[0] || 'https://via.placeholder.com/220'} alt="Album 2" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                {/* Top Album */}
+                <div style={{ 
+                  width: '100%', 
+                  aspectRatio: '1', 
+                  borderRadius: '16px', 
+                  overflow: 'hidden', 
+                  marginTop: '-180px',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                  background: '#222',
+                  zIndex: 2,
+                  position: 'relative'
+                }}>
+                  <img src={topSongImgs[0] || 'https://via.placeholder.com/220'} alt="Album 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, background: 'rgba(0,0,0,0.6)', padding: '8px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
+                     <div style={{ fontSize: '10px', fontWeight: 800, color: 'white', textTransform: 'uppercase', marginBottom: '2px' }}>Your #1 Song</div>
+                     <div style={{ fontSize: '12px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topSongs[0]?.[0]}</div>
+                  </div>
+                </div>
+             </div>
+          </div>
         </div>
+
+        {/* Story Footer */}
+        <div style={{ marginTop: 'auto', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+           <p style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '4px' }}>
+             Created by Debarpan Chaudhuri
+           </p>
+        </div>
+      </div>
+
+      {availableMonths.length === 0 && (
+        <div style={{ marginTop: '40px', textAlign: 'center', padding: '60px', background: 'var(--surface)', borderRadius: '32px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎧</div>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Vibe Check Pending!</h2>
+          <p style={{ color: 'var(--text2)', fontSize: '16px' }}>Start playing your favorite tracks to generate your Yearly Replay.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
         {/* Footer Promo */}
         <div style={{ marginTop: '60px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '32px', textAlign: 'center' }}>
