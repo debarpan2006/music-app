@@ -177,6 +177,16 @@ app.get('/api/search-artists', async (req, res) => {
   }
 });
 
+app.get('/api/search', async (req, res) => {
+  try {
+    const { query, limit } = req.query;
+    const results = await saavnSearch(query, limit || 10);
+    res.json({ data: { results } });
+  } catch (err) {
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
 app.get('/api/search/unified', async (req, res) => {
   try {
     const { query } = req.query;
