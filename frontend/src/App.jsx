@@ -114,15 +114,28 @@ const recordMonthlyPlay = (song, listenedMs = 0) => {
   let artist = resolveArtist(song);
   if (!artist || artist === '—') artist = 'Unknown';
 
-  const genre = song.genre || '';
+  // Extract better genres from song metadata
+  let finalGenre = song.genre || '';
+  if (!finalGenre) {
+    if (song.name?.toLowerCase().includes('lofi')) finalGenre = 'Lofi';
+    else if (song.language === 'hindi' || song.album?.toLowerCase().includes('bollywood')) finalGenre = 'Bollywood';
+    else if (song.language === 'punjabi') finalGenre = 'Punjabi';
+    else if (song.mood) finalGenre = song.mood.charAt(0).toUpperCase() + song.mood.slice(1);
+    else finalGenre = 'Original';
+  }
+
   m.songs[songName] = (m.songs[songName] || 0) + 1;
 
-  // Track individual artists separately, ignoring generic "Unknown"
+  // Track individual artists separately
   artist.split(',').map(a => a.trim()).filter(a => a && a !== 'Unknown' && a !== '—').forEach(a => {
     m.artists[a] = (m.artists[a] || 0) + 1;
   });
 
-  if (genre) m.genres[genre] = (m.genres[genre] || 0) + 1;
+  // Track genres (allow comma separated)
+  finalGenre.split(',').map(g => g.trim()).filter(g => g).forEach(g => {
+    m.genres[g] = (m.genres[g] || 0) + 1;
+  });
+  
   m.totalMs = (m.totalMs || 0) + listenedMs;
   saveMonthlyStats(stats);
 };
@@ -473,7 +486,11 @@ function MainApp({ user, logout }) {
         const listenedMs = Date.now() - act.start;
         // Fetch genre from global history if it exists, otherwise default
         const histSong = history?.songs?.[act.song.id] || {};
-        const mergedSong = { ...act.song, genre: histSong.genre || 'Pop' };
+        // Infer genre from history, mood, or search context
+        const mergedSong = { 
+          ...act.song, 
+          genre: histSong.genre || act.song.genre || act.song.mood || 'Vibes' 
+        };
 
         if (listenedMs > 5000) recordMonthlyPlay(mergedSong, listenedMs);
         act.start = null;
