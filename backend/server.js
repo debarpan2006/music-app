@@ -182,9 +182,12 @@ app.get('/api/search/unified', async (req, res) => {
     const { query } = req.query;
     if (!query) return res.json({ data: { results: [] } });
 
+    // Performance Wrapper: Don't let any source hang the UI for more than 1.5s
+    const withTimeout = (p, ms, fallback = []) => Promise.race([p, new Promise(r => setTimeout(() => r(fallback), ms))]);
+
     const [saavnRes, ytRes, appleRes] = await Promise.allSettled([
-      saavnSearch(query, 12),
-      ytmusic.searchSongs(query).then(songs => songs.slice(0, 10).map(s => ({
+      withTimeout(saavnSearch(query, 12), 1500),
+      withTimeout(ytmusic.searchSongs(query).then(songs => songs.slice(0, 10).map(s => ({
         id: "yt_" + s.videoId,
         name: s.name,
         ytVideoId: s.videoId,
@@ -196,12 +199,13 @@ app.get('/api/search/unified', async (req, res) => {
           { link: s.thumbnails?.[1]?.url || s.thumbnails?.[0]?.url || '' },
           { link: s.thumbnails?.[2]?.url || s.thumbnails?.[s.thumbnails.length-1]?.url || '' }
         ]
-      }))),
-      (async () => {
+      }))), 1500),
+      withTimeout((async () => {
         if (!appleToken) try { await fetchAppleToken(); } catch (e) { return []; }
         const url = `https://amp-api.music.apple.com/v1/catalog/in/search?term=${encodeURIComponent(query)}&types=songs&limit=8`;
         const r = await axios.get(url, {
-          headers: { 'Authorization': `Bearer ${appleToken}`, 'Origin': 'https://music.apple.com' }
+          headers: { 'Authorization': `Bearer ${appleToken}`, 'Origin': 'https://music.apple.com' },
+          timeout: 1200
         });
         return (r.data.results.songs?.data || []).map(s => ({
           id: "apple_" + s.id,
@@ -215,7 +219,7 @@ app.get('/api/search/unified', async (req, res) => {
             { link: s.attributes.artwork.url.replace('{w}', '500').replace('{h}', '500') }
           ]
         }));
-      })()
+      })(), 1500)
     ]);
 
     const results = [
@@ -224,13 +228,11 @@ app.get('/api/search/unified', async (req, res) => {
       ...(appleRes.status === 'fulfilled' ? appleRes.value : [])
     ];
 
-    // Simple shuffle to blend sources
-    for (let i = results.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [results[i], results[j]] = [results[j], results[i]];
-    }
+    // Deduplicate by name + artist if needed, but for now simple shuffle
+    // We put Saavn results (high quality streams) slightly higher in probability
+    const sorted = results.sort((a, b) => (a.source === 'saavn' ? -1 : 1));
 
-    res.json({ data: { results } });
+    res.json({ data: { results: sorted } });
   } catch (err) {
     console.error("Unified search fail:", err.message);
     res.status(500).json({ error: 'Unified Search failed' });

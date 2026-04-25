@@ -898,7 +898,7 @@ function MainApp({ user, logout }) {
         console.error("Live search failed", e);
       }
       setLoading(false);
-    }, 350); // 350ms debounce for snappy feel
+    }, 500); // 500ms debounce for unified heavy search
     return () => clearTimeout(timer);
   }, [query]);
 
@@ -1752,7 +1752,7 @@ function MainApp({ user, logout }) {
                 </div>
               )}
 
-              {loading && (
+              {loading && songs.length === 0 && (
                 <div className="loading-shimmer">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="shimmer-card">
@@ -1766,7 +1766,13 @@ function MainApp({ user, logout }) {
                 </div>
               )}
 
-              {!loading && songs.length > 0 && (
+              {loading && songs.length > 0 && (
+                <div className="search-loading-bar">
+                  <div className="loading-progress" />
+                </div>
+              )}
+
+              {songs.length > 0 && (
                 <div className="song-list">
                   {songs.map((song, idx) => {
                     const songHistory = history.songs[song.id];
