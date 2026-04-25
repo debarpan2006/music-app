@@ -2411,12 +2411,21 @@ function Login({ onLogin }) {
 
 function MonthlyReplay() {
   const allStats = loadMonthlyStats();
-  const availableMonths = Object.keys(allStats).sort().reverse();
+  const currentMonthKey = getMonthKey();
+  const currentYear = currentMonthKey.split('-')[0];
+  
+  const rawMonths = Object.keys(allStats);
+  if (!rawMonths.includes(currentMonthKey)) rawMonths.push(currentMonthKey);
+  
+  const availableMonths = rawMonths.sort().reverse();
   const uniqueYears = [...new Set(availableMonths.map(m => m.split('-')[0]))];
   
   // Add Yearly options to the selection list
   const selectionOptions = [...availableMonths];
-  uniqueYears.forEach(y => selectionOptions.push(`${y}-FULL`));
+  uniqueYears.forEach(y => {
+    const yearKey = `${y}-FULL`;
+    if (!selectionOptions.includes(yearKey)) selectionOptions.push(yearKey);
+  });
   const sortedOptions = selectionOptions.sort().reverse();
 
   const [selectedMonth, setSelectedMonth] = useState(availableMonths[0] || getMonthKey());
