@@ -19,7 +19,8 @@
 - **Cross-Platform Support**: Stream synced lyrics and metadata regardless of the source.
 
 ### 🤖 AI-Powered Personalization
-- **Smart Recommendations**: Utilizing **NVIDIA Llama 3.1 (70B)** to analyze your listening habits and suggest tracks that match your mood, time of day, and history.
+- **Last.fm Powered Discovery**: Real-time integration with **Last.fm Global Discovery API** to map artist similarities and trends on a global scale.
+- **Smart Recommendations**: Utilizing **NVIDIA Llama 3.1 (70B)** to analyze your listening habits and suggest tracks that match your mood, time of day, and history, now enhanced with real-time Last.fm context.
 - **Dynamic Playlists**: "For You" feeds that evolve in real-time as you listen.
 - **Artist Similarity Mapping**: Deep integration of artist relationships to help you discover your next favorite creator.
 

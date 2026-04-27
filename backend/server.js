@@ -13,6 +13,17 @@ const YOUTUBE_API_KEY = "AIzaSyB9V4KTQ7IfinBKw6-P85CAz7zPI9_Jaho"; // Official G
 const LASTFM_API_KEY = "7b3b51559253641a6575754b7f8e82e1";
 const LASTFM_BASE = "https://ws.audioscrobbler.com/2.0/";
 
+const lastfmGetSimilarArtists = async (artistName) => {
+  try {
+    const url = `${LASTFM_BASE}?method=artist.getsimilar&artist=${encodeURIComponent(artistName)}&api_key=${LASTFM_API_KEY}&format=json&limit=5`;
+    const response = await axios.get(url);
+    const artists = response.data?.similarartists?.artist || [];
+    return artists.map(a => a.name);
+  } catch (err) {
+    return [];
+  }
+};
+
 async function initYT() {
   try {
     if (YT_AUTH) {
@@ -421,6 +432,16 @@ app.post('/api/ai-smart', async (req, res) => {
     if (skipHeavy.length)
       profileLines.push(`Avoid (high skip rate): ${[...new Set(skipHeavy)].join(', ')}`);
 
+    // --- Last.fm Enrichment for AI ---
+    let lfmSimilarityContext = "";
+    if (topArtists.length > 0) {
+      const topA = topArtists[0].name;
+      const similarLfm = await lastfmGetSimilarArtists(topA);
+      if (similarLfm.length > 0) {
+        lfmSimilarityContext = `\nLast.fm Global Insights: Users who like ${topA} also enjoy: ${similarLfm.join(', ')}. Use this to broaden your Query 2 and Query 5!`;
+      }
+    }
+
     const userProfileText = profileLines.length
       ? profileLines.join('\n')
       : `New user — suggest popular Indian music explicitly tailored to: ${explicitGenres.join(', ')} and ${explicitArtists.join(', ')}.`;
@@ -428,6 +449,8 @@ app.post('/api/ai-smart', async (req, res) => {
     const explicitPrefsText = (explicitGenres.length || explicitArtists.length)
       ? `\nCRITICAL USER ONBOARDING PREFS: The user explicitly selected these Favorite Genres: [${explicitGenres.join(', ')}] and Favorite Artists: [${explicitArtists.join(', ')}]. Highly prioritize these matches in your queries!`
       : '';
+    
+    const contextWithLfm = `${userProfileText}${explicitPrefsText}${lfmSimilarityContext}`;
 
     // ── AI call ──────────────────────────────────────────────────────────
     const completion = await nvidia.chat.completions.create({
@@ -486,7 +509,7 @@ Return ONLY valid JSON, no markdown, no extra text whatsoever:
           content: `User Name: ${userName || 'User'}
 User request: "${prompt || 'Recommend music for me'}"
 Time of day: ${timeContext}
-${userProfileText}${explicitPrefsText}
+${contextWithLfm}
 ${listeningContext ? `Listening context: ${listeningContext}` : ''}
 ${sessionSongs.length > 0 ? `Already played this session: ${sessionSongs.length} songs — avoid repeats` : ''}`,
         },
@@ -648,15 +671,23 @@ app.post('/api/for-you', async (req, res) => {
       // Dynamic onboarding profile based fetching
       const topA = explicitArtists.slice(0, 3);
       const topG = explicitGenres.slice(0, 2);
+      
+      // Fetch Last.fm similar artists for the first explicit artist
+      const lfmSimilar = await lastfmGetSimilarArtists(topA[0]);
+
       queries = [
         ...topA.map(a => `${a} best songs`),
         ...topG.map(g => `${g} hindi trending ${year}`),
-        `${timeContext} vibes hindi music`,
+        lfmSimilar.length > 0 ? `${lfmSimilar[0]} top hits` : `${timeContext} vibes hindi music`,
         `trending indian music ${year}`
       ];
     } else if (topArtists.length >= 2) {
-      const similar1 = getSimilarArtists(topArtists[0].name);
-      const similar2 = topArtists[1] ? getSimilarArtists(topArtists[1].name) : [];
+      const lfmSimilar1 = await lastfmGetSimilarArtists(topArtists[0].name);
+      const lfmSimilar2 = await lastfmGetSimilarArtists(topArtists[1].name);
+      
+      const similar1 = lfmSimilar1.length > 0 ? lfmSimilar1 : getSimilarArtists(topArtists[0].name);
+      const similar2 = lfmSimilar2.length > 0 ? lfmSimilar2 : (topArtists[1] ? getSimilarArtists(topArtists[1].name) : []);
+      
       const topMoodQuery = topMoods[0]?.mood ? MOOD_QUERIES[topMoods[0].mood]?.[0] : null;
       const timeQuery = TIME_DEFAULTS[timeContext]?.[1] || 'bollywood popular';
 
@@ -669,7 +700,9 @@ app.post('/api/for-you', async (req, res) => {
         `trending indian music ${new Date().getFullYear()}`,                                     // freshness
       ];
     } else if (topArtists.length === 1) {
-      const similar = getSimilarArtists(topArtists[0].name);
+      const lfmSimilar = await lastfmGetSimilarArtists(topArtists[0].name);
+      const similar = lfmSimilar.length > 0 ? lfmSimilar : getSimilarArtists(topArtists[0].name);
+      
       queries = [
         `${topArtists[0].name} top songs`,
         similar[0] ? `${similar[0]} songs` : 'top hindi songs 2024',
