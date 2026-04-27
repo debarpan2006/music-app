@@ -7,10 +7,11 @@ const YTMusic = require('ytmusic-api');
 
 const ytmusic = new YTMusic();
 
-const YT_AUTH = process.env.YT_AUTH || ""; // User can set this in Vercel/Environment
-const YOUTUBE_API_KEY = "AIzaSyB9V4KTQ7IfinBKw6-P85CAz7zPI9_Jaho"; // Official Google Cloud Key
+const YT_AUTH = process.env.YT_AUTH || "";
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "AIzaSyB9V4KTQ7IfinBKw6-P85CAz7zPI9_Jaho"; 
 
-const LASTFM_API_KEY = "7b3b51559253641a6575754b7f8e82e1";
+const LASTFM_API_KEY = process.env.LASTFM_API_KEY || "7b3b51559253641a6575754b7f8e82e1";
+const LASTFM_SECRET = process.env.LASTFM_SHARED_SECRET || "";
 const LASTFM_BASE = "https://ws.audioscrobbler.com/2.0/";
 
 const lastfmGetSimilarArtists = async (artistName) => {
@@ -71,7 +72,7 @@ app.use(express.json());
 const SAAVN_BASE = 'https://jiosaavn-api-privatecvc2.vercel.app';
 
 const nvidia = new OpenAI({
-  apiKey: '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', // Hardcoded as requested for seamless deployment
+  apiKey: process.env.NVIDIA_API_KEY || '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', 
   baseURL: 'https://integrate.api.nvidia.com/v1',
 });
 
