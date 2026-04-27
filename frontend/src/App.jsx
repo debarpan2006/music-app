@@ -2573,103 +2573,100 @@ function MonthlyReplay() {
         <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '120%', height: '50%', background: 'radial-gradient(ellipse at top, rgba(255,61,61,0.2) 0%, transparent 60%)', filter: 'blur(50px)' }} />
         
         {/* Branding */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '80px', position: 'relative', zIndex: 2 }}>
-           <div style={{ fontSize: '18px', fontWeight: 900, color: 'white', letterSpacing: '1px' }}>Replay</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo.jpg" alt="Logo" style={{ width: '60px', height: '60px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }} />
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', position: 'relative', zIndex: 10 }}>
+           <div style={{ fontSize: '14px', fontWeight: 900, color: 'rgba(255,255,255,0.4)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Replay</div>
+          <img src="/logo.jpg" alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', boxShadow: '0 8px 20px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} />
         </div>
 
         {/* Hero Title */}
-        <div style={{ textAlign: 'center', marginBottom: '100px', position: 'relative', zIndex: 2 }}>
-          <h2 style={{ fontSize: '48px', fontWeight: 800, color: 'white', margin: 0, letterSpacing: '-0.03em' }}>
+        <div style={{ textAlign: 'center', marginBottom: '60px', position: 'relative', zIndex: 2 }}>
+          <h2 style={{ fontSize: '42px', fontWeight: 800, color: 'white', margin: 0, letterSpacing: '-0.03em' }}>
             {isFullYear ? `Full Year ${selectedMonth.split('-')[0]}` : monthLabel(selectedMonth).split(' ')[0]}
           </h2>
-          <div style={{ fontSize: '44px', fontWeight: 800, color: 'white', letterSpacing: '-0.02em', marginTop: '-4px' }}>
+          <div style={{ fontSize: '38px', fontWeight: 800, color: 'white', letterSpacing: '-0.02em', marginTop: '-2px' }}>
             {isFullYear ? '' : selectedMonth.split('-')[0]}
           </div>
-          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.4)', marginTop: '12px', fontWeight: 600 }}>{totalMin} minutes</p>
+          <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', marginTop: '8px', fontWeight: 600 }}>{totalMin} minutes</p>
         </div>
 
         {/* Content Section */}
-        <div style={{ display: 'flex', flex: 1, position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', flex: 1, position: 'relative', zIndex: 2, gap: '20px' }}>
           {/* Left Column: Lists */}
-          <div style={{ width: '60%' }}>
+          <div style={{ width: '55%', display: 'flex', flexDirection: 'column', gap: '40px' }}>
             {/* Top Artists List */}
-            <div style={{ marginBottom: '60px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'white', marginBottom: '24px' }}>Top Artists</h3>
+            <div>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Top Artists</h3>
               {topArtists.slice(0, 3).map(([name, count], i) => (
-                <div key={name} style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '12px' }}>{i + 1}</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                <div key={name} style={{ display: 'flex', gap: '12px', marginBottom: '14px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '10px' }}>{i + 1}</span>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
                 </div>
               ))}
             </div>
 
             {/* Top Songs List */}
             <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'white', marginBottom: '24px' }}>Top Songs</h3>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Top Songs</h3>
               {topSongs.slice(0, 3).map(([name, count], i) => (
-                <div key={name} style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '12px' }}>{i + 1}</span>
+                <div key={name} style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', width: '10px', marginTop: '3px' }}>{i + 1}</span>
                   <div style={{ overflow: 'hidden' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-                    <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', fontWeight: 600, marginTop: '2px' }}>{count} times</div>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{count} times</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right Column: Visuals (Floating Images) */}
-          <div style={{ width: '40%', position: 'relative' }}>
+          {/* Right Column: Visuals */}
+          <div style={{ width: '45%', position: 'relative' }}>
              {/* Circular Top Artist */}
              <div style={{ 
                position: 'absolute', 
-               top: '-40px', 
-               right: '-20px', 
-               width: '240px', 
-               height: '240px', 
+               top: '0', 
+               right: '-10px', 
+               width: '180px', 
+               height: '180px', 
                borderRadius: '50%', 
                overflow: 'hidden', 
-               border: '10px solid black',
-               boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-               background: '#1a1a1a'
+               border: '6px solid black',
+               boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+               background: '#1a1a1a',
+               zIndex: 5
              }}>
-               <img src={topArtistImg || 'https://via.placeholder.com/240'} alt="Top Artist" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+               <img src={topArtistImg || 'https://via.placeholder.com/180'} alt="Top Artist" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
              </div>
 
              {/* Stacked Album Arts */}
-             <div style={{ position: 'absolute', bottom: '0', right: '-20px', width: '220px' }}>
-                {/* Second Album */}
+             <div style={{ position: 'absolute', bottom: '20px', right: '-10px', width: '150px' }}>
                 <div style={{ 
                   width: '100%', 
                   aspectRatio: '1', 
-                  borderRadius: '16px', 
+                  borderRadius: '12px', 
                   overflow: 'hidden', 
-                  transform: 'rotate(-5deg) translateY(40px)',
-                  boxShadow: '0 15px 30px rgba(0,0,0,0.5)',
-                  background: '#1a1a1a',
+                  transform: 'rotate(-8deg) translateY(30px) translateX(-10px)',
+                  boxShadow: '0 15px 30px rgba(0,0,0,0.6)',
+                  background: '#111',
                   zIndex: 1
                 }}>
-                  <img src={topSongImgs[1] || topSongImgs[0] || 'https://via.placeholder.com/220'} alt="Album 2" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={topSongImgs[1] || topSongImgs[0] || 'https://via.placeholder.com/150'} alt="Album 2" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                {/* Top Album */}
                 <div style={{ 
                   width: '100%', 
                   aspectRatio: '1', 
-                  borderRadius: '16px', 
+                  borderRadius: '12px', 
                   overflow: 'hidden', 
-                  marginTop: '-180px',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                  marginTop: '-120px',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
                   background: '#222',
-                  zIndex: 2,
+                  zIndex: 6,
                   position: 'relative'
                 }}>
-                  <img src={topSongImgs[0] || 'https://via.placeholder.com/220'} alt="Album 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, background: 'rgba(0,0,0,0.6)', padding: '8px', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                     <div style={{ fontSize: '10px', fontWeight: 800, color: 'white', textTransform: 'uppercase', marginBottom: '2px' }}>Your #1 Song</div>
-                     <div style={{ fontSize: '12px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topSongs[0]?.[0]}</div>
+                  <img src={topSongImgs[0] || 'https://via.placeholder.com/150'} alt="Album 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, background: 'rgba(0,0,0,0.7)', padding: '6px', borderRadius: '6px', backdropFilter: 'blur(10px)' }}>
+                     <div style={{ fontSize: '8px', fontWeight: 800, color: 'white', textTransform: 'uppercase' }}>Top Track</div>
+                     <div style={{ fontSize: '10px', fontWeight: 700, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topSongs[0]?.[0]}</div>
                   </div>
                 </div>
              </div>
@@ -2677,9 +2674,9 @@ function MonthlyReplay() {
         </div>
 
         {/* Story Footer */}
-        <div style={{ marginTop: 'auto', textAlign: 'center', position: 'relative', zIndex: 2 }}>
-           <p style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: '4px' }}>
-             Created by Debarpan Chaudhuri
+        <div style={{ marginTop: '40px', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+           <p style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase', letterSpacing: '3px' }}>
+             Built by Debarpan Chaudhuri
            </p>
         </div>
       </div>
